@@ -20,6 +20,6 @@ Less common, but still often:
 - `git push -u origin [branch name]` -- if there is no upstream branch, publish the current one
 - `git branch -r` -- list all remote branches
 - `git branch [branch name]` -- create a new branch from the current branch
-- `git checkout -b origin/[remote branch] [local name]` -- create a branch that tracks a remote one
+- `git checkout -b [local name] origin/[remote branch]` -- create a branch that tracks a remote one
 - `git branch -d [branch name]` -- delete a branch
 - `git merge [branch to merge]` -- merge a branch into current branch 
