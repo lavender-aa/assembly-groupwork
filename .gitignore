@@ -1,2 +1,24 @@
-*\.vs
-"Project 1"\Project.vcxproj.user
+#*\.vs
+#"Project 1"\Project.vcxproj.user
+
+# ignore everything
+*
+
+# except:
+# -------
+
+# this gitignore
+!.gitignore
+
+# markdown files
+!*.md
+
+# assembly source files
+!*.asm
+
+# VS project, solution files
+!Project.vcxproj
+!Project.sln
+
+# search one directory deep
+!*/
