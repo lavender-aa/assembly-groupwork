@@ -1,4 +1,9 @@
 TITLE Average Program
+;Group 6 - CMSC-3100-001
+;Group Members:
+;Tanner Lauritzen	(LAU74968@pennwest.edu)
+;Lavender Wilson	(WIL81891@pennwest.edu)
+;Jon Riley		(RIL77053@pennwest.edu)
 
 INCLUDE Irvine32.inc
 
