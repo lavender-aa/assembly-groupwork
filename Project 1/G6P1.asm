@@ -23,7 +23,6 @@ remainder_name byte "remainder: ",0
 
 ; input
 inputBuffer byte 11 dup(0)
-bufferSize = ($ - inputBuffer)
 
 ; accumulating, calculating
 sum dword 0
