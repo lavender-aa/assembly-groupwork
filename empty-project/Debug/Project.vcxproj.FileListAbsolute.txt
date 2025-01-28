@@ -1,2 +1,0 @@
-C:\Users\vboxuser\Downloads\Project32_VS2022\Debug\Project.exe
-C:\Users\vboxuser\source\repos\assembly-groupwork\empty-project\Debug\Project.exe
