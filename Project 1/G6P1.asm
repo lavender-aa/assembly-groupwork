@@ -58,6 +58,10 @@ _loop:
 	mov ecx, eax                  ; eax contains number of characters (from above read)
 	call ParseInteger32
 
+	; if 0 characters are read, skip to next loop
+	cmp eax, 0
+	je _loop
+
 	; if the parse failed (overflow flag set), skip to next loop iteration
 	jo _loop
 
