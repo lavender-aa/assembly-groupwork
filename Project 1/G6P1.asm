@@ -1,5 +1,5 @@
 
-title test
+title Average Program
 
 ; Course: CMSC 3100 -- Assembly
 ; Program 1: Average Program
