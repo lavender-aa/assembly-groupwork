@@ -29,7 +29,7 @@ bufferSize = ($ - inputBuffer)
 sum dword 0
 average dword 0 ; = sum(32, will be in a register) / count(8, mem)
 remainder dword 0
-count dword 0
+count word 0
 
 .code
 main proc
@@ -75,7 +75,7 @@ _loop:
 	add sum, eax
 
 	; increase grade count
-	add count, 1
+	inc count
 
 	; go to the next loop
 	jmp _loop
@@ -105,7 +105,7 @@ _out:
 	call Crlf
 	mov edx, offset count_name
 	call WriteString
-	mov eax, count
+	movzx eax, count
 	call WriteInt
 
 	call Crlf
