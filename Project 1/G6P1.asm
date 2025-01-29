@@ -52,6 +52,10 @@ _loop:
 	mov edx, offset inputBuffer
 	mov ecx, sizeof inputBuffer
 	call ReadString
+
+	; if 0 characters are read, skip to next loop
+	cmp eax, 0
+	je _loop
 	
 	; convert input to integer (stored in eax)
 	mov edx, offset inputBuffer
