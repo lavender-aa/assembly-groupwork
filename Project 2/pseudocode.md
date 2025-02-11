@@ -7,6 +7,8 @@ pseudocode for outlining/dividing work -- feel free to use for designing functio
 
 
 .code
+
+// assignee: lavender
 main proc
     _loop:
         get user input
@@ -34,12 +36,19 @@ main proc
 main endp
 
 // ------------------- push onto stack, operations -------------------
+// asignee: jon
 
 push_num proc
 push_num endp
 
+pop_num proc
+pop_num endp
+
 minus_op proc
 minus_op endp
+
+plus_op proc
+plus_op endp
 
 mul_op proc
 mul_op endp
@@ -48,6 +57,7 @@ div_op proc
 div_op endp
 
 // ------------------- commands -------------------
+// assignee: tanner
 
 exchange_top_two proc
 exchange_top_two endp
