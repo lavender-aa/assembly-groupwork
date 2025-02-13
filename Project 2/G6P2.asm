@@ -110,6 +110,8 @@ _out: ; quit the program
 	exit
 main endp
 
+
+
 read_input proc
 	; start with input buffer, define null and tab
 	null equ 0
@@ -120,7 +122,7 @@ read_input proc
 	mov ecx, sizeof buffer
 	call ReadString
 	mov bytecount, eax ; keep number of bytes read
-	
+
 	; initialize index reg to 0
 	mov edi, 0
 _skip: 
