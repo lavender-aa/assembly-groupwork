@@ -106,7 +106,7 @@ _default: ; print error
 _end: ; continue to next loop
 	jmp _loop
 	
-_out: ; quit the program
+_out: ;exit program
 	exit
 main endp
 
@@ -148,9 +148,19 @@ _skip:
 _next_char:
 	inc edi
 	jmp _skip
+
 _skip_else:
 	mov al, -1 ; nothing in input buffer, set output
+
 _end: 
+	; make sure letter is uppercase before returning
+	cmp al, 'A'
+	jl _ret
+	cmp al, 'Z'
+	jg _ret
+	or al, 20h ; set 'case' bit
+
+_ret:
     ret
 read_input endp
 
