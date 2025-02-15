@@ -165,4 +165,234 @@ _ret:
 read_input endp
 
 
+
+
+clear_stack PROC
+	; set index back to -4 and return
+	mov index,-4
+	ret
+clear_stack ENDP
+
+
+
+exchange_top_two PROC
+	; save the registers
+	push eax
+	push ebx
+
+	; check if the stack has less than 2 elements
+	cmp index,4
+	jl error_exchange_top_two
+
+	; pop the numbers and store them
+	call pop_num	; pop the first number
+	push eax		; push onto system stack
+	call pop_num	; pop the second number
+	mov ebx,eax	; store in temp register
+
+	; push the numbers in reverse order
+	pop eax		; pop the first number from system stack
+	call push_num	; push onto the stack
+	mov eax,ebx	; get the second number from temp register
+	call push_num	; push onto the stack
+
+	; indicate success
+	clc
+
+	; jump to end of procedure
+	jmp end_exchange_top_two
+
+error_exchange_top_two:
+	; indicate insufficient operands
+	stc
+
+end_exchange_top_two:
+	; restore the registers
+	pop ebx
+	pop eax
+
+	;return
+	ret
+exchange_top_two ENDP
+
+
+
+roll_stack_up PROC
+	; save the registers
+	push esi
+	push eax
+	push ebx
+
+	; check if stack is empty
+	cmp index,0
+	jl error_roll_stack_up
+
+	; get the stack index
+	mov esi,index
+
+	; store the number at ebx
+	mov ebx,num_stack[esi]
+	sub esi,4		; subtract 4 from index register
+
+roll_stack_up_firstLoop:
+	; check if beginning of stack
+	cmp esi,0
+	jl end_roll_stack_up_firstLoop
+
+	; store the number at index register onto system stack
+	mov eax,num_stack[esi]
+	push eax		; store on system stack
+	sub esi,4		; subtract 4 from index register
+
+	; keep looping
+	jmp roll_stack_up_firstLoop
+
+end_roll_stack_up_firstLoop:
+	; put the number at ebx at the beginning
+	add esi,4
+	mov num_stack[esi],ebx
+
+roll_stack_up_secondLoop:
+	; increment esi register
+	add esi,4
+
+	; check if index register is at index
+	cmp esi,index
+	jg end_roll_stack_up_secondLoop
+
+	; get the number in system stack and put it at index register
+	pop eax
+	mov num_stack[esi],eax
+
+	; keep looping
+	jmp roll_stack_up_secondLoop
+
+end_roll_stack_up_secondLoop:
+	; indicate success
+	clc
+
+	; jump to end of procedure
+	jmp end_roll_stack_up
+
+error_roll_stack_up:
+	; indicate stack is empty
+	stc
+
+end_roll_stack_up:
+	; restore the registers
+	pop ebx
+	pop eax
+	pop esi
+
+	;return
+	ret
+roll_stack_up ENDP
+
+
+
+roll_stack_down PROC
+	; save the registers
+	push esi
+	push eax
+	push ebx
+
+	; check if stack is empty
+	cmp index,0
+	jl error_roll_stack_down
+
+	; get the stack index
+	mov esi,index
+
+roll_stack_down_firstLoop:
+	; check if beginning of stack
+	cmp esi,0
+	jl end_roll_stack_down_firstLoop
+
+	; store the number at index register onto system stack
+	mov eax,num_stack[esi]
+	push eax		; store on system stack
+	sub esi,4		; subtract 4 from index register
+
+	; keep looping
+	jmp roll_stack_down_firstLoop
+
+end_roll_stack_down_firstLoop:
+	; get the new top and store it in ebx
+	pop ebx
+
+roll_stack_down_secondLoop:
+	; increment the index register
+	add esi,4
+
+	; check if index register is at index
+	cmp esi,index
+	jge end_roll_stack_down_secondLoop
+
+	; get the number in system stack and put it at index register
+	pop eax
+	mov num_stack[esi],eax
+
+	; keep looping
+	jmp roll_stack_down_secondLoop
+
+end_roll_stack_down_secondLoop:
+	; put new top stored in ebx onto stack at index
+	mov num_stack[esi],ebx
+
+	; indicate success
+	clc
+
+	; jump to end of procedure
+	jmp end_roll_stack_down
+
+error_roll_stack_down:
+	; indicate empty stack
+	stc
+
+end_roll_stack_down:
+	; restore the registers
+	pop ebx
+	pop eax
+	pop esi
+
+	; return
+	ret
+roll_stack_down ENDP
+
+
+
+print_stack PROC
+	; save the registers
+	push esi
+	push eax
+
+	; get the index
+	mov esi,index
+
+print_stack_loop:
+	; check if index register is less than 0
+	cmp esi,0
+	jl end_print_stack
+
+	; get the number from the stack
+	mov eax,num_stack[esi]
+
+	; print the number
+	call WriteInt
+	call Crlf
+
+	; subtract from index register
+	sub esi,4
+
+	; keep looping
+	jmp print_stack_loop
+
+end_print_stack:
+	; restore the registers
+	pop eax
+	pop esi
+
+	;return
+	ret
+print_stack ENDP
 END main
