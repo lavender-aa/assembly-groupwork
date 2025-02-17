@@ -12,18 +12,40 @@ num_stack sdword stacksize dup(0)
 ; io related
 cr equ 13
 lf equ 10
-errormsg byte "Error: invalid input.",cr,lf,0
-buffer byte 41 dup(0)
-bytecount dword ?
+tab equ 9
+invalidInputMsg byte "Error: Invalid input.",cr,lf,0
+generalCommandErrorMsg byte "Error: Cannot perform command.",cr,lf,0
+stackTooSmallErrorMsg byte "Error: Stack is too small to perform operation.",cr,lf,0
 
-string byte "your input: a",cr,lf,0
+buffer byte 41 dup(0)
+bytecount dword 0
+menu byte "Options:",cr,lf
+	 byte "--------",cr,lf
+	 byte tab,"[integer]: push number onto stack",cr,lf
+	 byte tab,"+: add top two stack elements",cr,lf
+	 byte tab,"-: subtract top two stack elements",cr,lf
+	 byte tab,"*: multiply top two stack elements",cr,lf
+	 byte tab,"/: divide top two stack elements",cr,lf
+	 byte tab,"x: exchange top two stack elements",cr,lf
+	 byte tab,"u: roll stack up",cr,lf
+	 byte tab,"d: roll stack down",cr,lf
+	 byte tab,"v: view stack",cr,lf
+	 byte tab,"c: clear stack",cr,lf
+	 byte tab,"q: quit",cr,lf,cr,lf,0
+prompt byte "Enter choice: ",0
 
 
 .code
 
 main proc
+	; print options
+	mov edx, offset menu
+	call WriteString
+
 _loop:
-    ; get user input
+    ; prompt, get user input
+	mov edx, offset prompt
+	call WriteString
     call read_input
 
 	; command handler
@@ -66,31 +88,40 @@ _c5: ; division
 _c6: ; exchange top two elements of stack
 	cmp al, 'x'
 	jne _c7
-	; case 6 body
+	call exchange_top_two
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg
+	call WriteString
 	jmp _end
 
 _c7: ; roll stack up
 	cmp al, 'u'
 	jne _c8
-	; case 7 body
+	call roll_stack_up
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg
+	call WriteString
 	jmp _end
 
 _c8: ; roll stack down
 	cmp al, 'd'
 	jne _c9
-	; case 8 body
+	call roll_stack_down
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg
+	call WriteString
 	jmp _end
 
 _c9: ; print stack ("view")
 	cmp al, 'v'
 	jne _c10
-	; case 9 body
+	call print_stack
 	jmp _end
 
 _c10: ; clear stack
 	cmp al, 'c'
 	jne _c11
-	; case 10 body
+	call clear_stack
 	jmp _end
 
 _c11: ; quit
@@ -99,7 +130,7 @@ _c11: ; quit
 	jmp _out
 
 _default: ; print error
-	mov edx, offset errormsg
+	mov edx, offset invalidInputMsg
 	call WriteString
 	; fall through to _end
     
@@ -113,6 +144,12 @@ main endp
 
 
 read_input proc
+	; save registers used
+	push ebx
+	push ecx
+	push edx
+	push edi
+
 	; start with input buffer, define null and tab
 	null equ 0
 	tab equ 9
@@ -151,6 +188,7 @@ _next_char:
 
 _skip_else:
 	mov al, -1 ; nothing in input buffer, set output
+	jmp _ret
 
 _end: 
 	; make sure letter is uppercase before returning
@@ -161,6 +199,24 @@ _end:
 	or al, 20h ; set 'case' bit
 
 _ret:
+
+	; move buffer over to first nonspace character
+	mov ebx, 0
+_movbuff: ; move buffer contents over by edi characters
+	cmp ebx, 40
+	jge _endbuff
+	mov cl, buffer[ebx + edi] ; get the next character starting at nonwhitespace
+	mov buffer[ebx], cl ; move the character over to the beginning
+	inc ebx
+	jmp _movbuff
+_endbuff:
+
+	; restore registers used
+	pop edi
+	pop edx
+	pop ecx
+	pop ebx
+
     ret
 read_input endp
 
@@ -185,16 +241,16 @@ exchange_top_two PROC
 	jl error_exchange_top_two
 
 	; pop the numbers and store them
-	call pop_num	; pop the first number
+	;call pop_num	; pop the first number                                     TODO: uncomment when pop_num and push_num are written
 	push eax		; push onto system stack
-	call pop_num	; pop the second number
+	;call pop_num	; pop the second number
 	mov ebx,eax	; store in temp register
 
 	; push the numbers in reverse order
 	pop eax		; pop the first number from system stack
-	call push_num	; push onto the stack
+	;call push_num	; push onto the stack
 	mov eax,ebx	; get the second number from temp register
-	call push_num	; push onto the stack
+	;call push_num	; push onto the stack
 
 	; indicate success
 	clc
