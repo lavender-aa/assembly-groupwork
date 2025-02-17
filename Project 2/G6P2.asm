@@ -72,7 +72,7 @@ _c1: ; first character is digit
 	call WriteString
 	jmp _end
 _c1err: ; cast was a failure; print message
-	mov edx, offest parseIntErrorMsg
+	mov edx, offset parseIntErrorMsg
 	call WriteString
 	jmp _end
 
@@ -81,16 +81,16 @@ _c2: ; first character is a minus sign -- negative number OR subtract
 	jne _c3
 	mov al, buffer[1] ; check next character
 	cmp al, '0'
-	jl _c2out
+	jl _c2err
 	cmp al, '9'
-	jg _c2out
+	jg _c2err
 	; input is a number; same as case 1
 	mov edx, offset buffer
 	mov ecx, sizeof buffer
 	call ParseInteger32
 	jo _c2err
 	; parce success; push number
-	push_num
+	call push_num
 	jno _end
 	mov edx, offset stackTooBigErrorMsg
 	call WriteString
@@ -196,6 +196,26 @@ main endp
 
 
 negate_top proc
+	; store registers used
+	push eax
+	push ebx
+	push esi
+
+	clc ; clear carry flag, used for error
+	cmp index, 0
+	jl _error
+	mov esi, index
+	mov ebx, num_stack[esi]
+	mul eax
+	mov num_stack[esi], eax
+	jmp _ret
+_error: ; stack empty; set carry flag
+	stc
+_ret:
+	; restore registers
+	pop esi
+	pop ebx
+	pop eax
 	ret
 negate_top endp
 
