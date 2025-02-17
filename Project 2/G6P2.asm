@@ -15,7 +15,9 @@ lf equ 10
 tab equ 9
 invalidInputMsg byte "Error: Invalid input.",cr,lf,0
 generalCommandErrorMsg byte "Error: Cannot perform command.",cr,lf,0
-stackTooSmallErrorMsg byte "Error: Stack is too small to perform operation.",cr,lf,0
+stackTooSmallErrorMsg byte "Error: Stack has too few elements to perform operation.",cr,lf,0
+stackTooBigErrorMsg byte "Error: Stack is full, cannot perform operation.",cr,lf,0
+parseIntErrorMsg byte "Error: Unable to parse input into an integer.",cr,lf,0
 
 buffer byte 41 dup(0)
 bytecount dword 0
@@ -58,31 +60,73 @@ _c1: ; first character is digit
 	jl _c2
 	cmp al, '9'
 	jg _c2
-	; case 1 body
+	; convert input string to integer, push to stack
+	mov edx, offset buffer
+	mov ecx, sizeof buffer
+	call ParseInteger32 ; on success: integer in eax
+	jo _c1err
+	; cast was a success; continue processing
+	;call push_num                                                         TODO: uncomment when push_num written
+	jno _end
+	mov edx, offset stackTooBigErrorMsg ; push fails when stack is full
+	call WriteString
+	jmp _end
+_c1err: ; cast was a failure; print message
+	mov edx, offest parseIntErrorMsg
+	call WriteString
 	jmp _end
 
 _c2: ; first character is a minus sign -- negative number OR subtract
 	cmp al, '-'
 	jne _c3
-	; case 2 body
+	mov al, buffer[1] ; check next character
+	cmp al, '0'
+	jl _c2out
+	cmp al, '9'
+	jg _c2out
+	; input is a number; same as case 1
+	mov edx, offset buffer
+	mov ecx, sizeof buffer
+	call ParseInteger32
+	jo _c2err
+	; parce success; push number
+	;push_num                                                                TODO: uncomment when push_num written
+	jno _end
+	mov edx, offset stackTooBigErrorMsg
+	call WriteString
+	jmp _end
+_c2err: ; parse fail; not a number, negate top element
+	;call negate_top                                                         TODO: uncomment when negate_top written
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg ; cannot negate an empty stack
+	call WriteString
 	jmp _end
 
 _c3: ; addition
 	cmp al, '+'
 	jne _c4
-	; case 3 body
+	;call add_nums                                                         TODO: uncomment when add_nums written
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg ; cannot add if stack is too small
+	call WriteString
 	jmp _end
 
 _c4: ; multiplication
 	cmp al, '*'
 	jne _c5
-	; case 4 body
+	;call mul_nums                                                         TODO: uncomment when mul_nums written
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg
+	call WriteString
 	jmp _end
 
 _c5: ; division
 	cmp al, '/'
 	jne _c6
-	; case 5 body
+	;call div_nums                                                         TODO: uncomment when div_nums written
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg
+	call WriteString
 	jmp _end
 
 _c6: ; exchange top two elements of stack
