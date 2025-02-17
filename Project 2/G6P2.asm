@@ -66,7 +66,7 @@ _c1: ; first character is digit
 	call ParseInteger32 ; on success: integer in eax
 	jo _c1err
 	; cast was a success; continue processing
-	;call push_num                                                         TODO: uncomment when push_num written
+	call push_num
 	jno _end
 	mov edx, offset stackTooBigErrorMsg ; push fails when stack is full
 	call WriteString
@@ -90,13 +90,13 @@ _c2: ; first character is a minus sign -- negative number OR subtract
 	call ParseInteger32
 	jo _c2err
 	; parce success; push number
-	;push_num                                                                TODO: uncomment when push_num written
+	push_num
 	jno _end
 	mov edx, offset stackTooBigErrorMsg
 	call WriteString
 	jmp _end
 _c2err: ; parse fail; not a number, negate top element
-	;call negate_top                                                         TODO: uncomment when negate_top written
+	call sub_nums
 	jnc _end
 	mov edx, offset stackTooSmallErrorMsg ; cannot negate an empty stack
 	call WriteString
@@ -105,7 +105,7 @@ _c2err: ; parse fail; not a number, negate top element
 _c3: ; addition
 	cmp al, '+'
 	jne _c4
-	;call add_nums                                                         TODO: uncomment when add_nums written
+	call add_nums
 	jnc _end
 	mov edx, offset stackTooSmallErrorMsg ; cannot add if stack is too small
 	call WriteString
@@ -114,7 +114,7 @@ _c3: ; addition
 _c4: ; multiplication
 	cmp al, '*'
 	jne _c5
-	;call mul_nums                                                         TODO: uncomment when mul_nums written
+	call mul_nums
 	jnc _end
 	mov edx, offset stackTooSmallErrorMsg
 	call WriteString
@@ -123,7 +123,7 @@ _c4: ; multiplication
 _c5: ; division
 	cmp al, '/'
 	jne _c6
-	;call div_nums                                                         TODO: uncomment when div_nums written
+	call div_nums
 	jnc _end
 	mov edx, offset stackTooSmallErrorMsg
 	call WriteString
@@ -138,37 +138,46 @@ _c6: ; exchange top two elements of stack
 	call WriteString
 	jmp _end
 
-_c7: ; roll stack up
-	cmp al, 'u'
+_c7: ; negate top element
+	cmp al, 'n'
 	jne _c8
+	call negate_top
+	jnc _end
+	mov edx, offset stackTooSmallErrorMsg
+	call WriteString
+	jmp _end
+
+_c8: ; roll stack up
+	cmp al, 'u'
+	jne _c9
 	call roll_stack_up
 	jnc _end
 	mov edx, offset stackTooSmallErrorMsg
 	call WriteString
 	jmp _end
 
-_c8: ; roll stack down
+_c9: ; roll stack down
 	cmp al, 'd'
-	jne _c9
+	jne _c10
 	call roll_stack_down
 	jnc _end
 	mov edx, offset stackTooSmallErrorMsg
 	call WriteString
 	jmp _end
 
-_c9: ; print stack ("view")
+_c10: ; print stack ("view")
 	cmp al, 'v'
-	jne _c10
+	jne _c11
 	call print_stack
 	jmp _end
 
-_c10: ; clear stack
+_c11: ; clear stack
 	cmp al, 'c'
-	jne _c11
+	jne _c12
 	call clear_stack
 	jmp _end
 
-_c11: ; quit
+_c12: ; quit
 	cmp al, 'q'
 	jne _default
 	jmp _out
@@ -186,6 +195,39 @@ _out: ;exit program
 main endp
 
 
+negate_top proc
+	ret
+negate_top endp
+
+
+sub_nums proc
+	ret
+sub_nums endp
+
+
+add_nums proc
+	ret
+add_nums endp
+
+
+mul_nums proc
+	ret
+mul_nums endp
+
+
+div_nums proc
+	ret
+div_nums endp
+
+
+push_num proc
+	ret
+push_num endp
+
+
+pop_num proc
+	ret
+pop_num endp
 
 read_input proc
 	; save registers used
