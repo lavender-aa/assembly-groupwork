@@ -18,6 +18,7 @@ generalCommandErrorMsg byte "Error: Cannot perform command.",cr,lf,0
 stackTooSmallErrorMsg byte "Error: Stack has too few elements to perform operation.",cr,lf,0
 stackTooBigErrorMsg byte "Error: Stack is full, cannot perform operation.",cr,lf,0
 parseIntErrorMsg byte "Error: Unable to parse input into an integer.",cr,lf,0
+emptyStackErrorMsg byte "Stack is empty.",cr,lf,0
 
 buffer byte 41 dup(0)
 bytecount dword 0
@@ -36,6 +37,7 @@ menu byte "Options:",cr,lf
 	 byte tab,"c: clear stack",cr,lf
 	 byte tab,"q: quit",cr,lf,cr,lf,0
 prompt byte "Enter choice: ",0
+top byte "Top element: ",0
 
 
 .code
@@ -46,10 +48,24 @@ main proc
 	call WriteString
 
 _loop:
+	; if it exists, print the top of the stack
+	cmp index, 0
+	jl _prompt
+	mov edx, offset top
+	call WriteString
+	mov esi, index
+	mov eax, num_stack[esi]
+	call WriteInt
+	call Crlf
+
+
+_prompt:
+
     ; prompt, get user input
 	mov edx, offset prompt
 	call WriteString
     call read_input
+	call Crlf
 
 	; command handler
 _switch:
@@ -221,35 +237,6 @@ _ret:
 	ret
 negate_top endp
 
-
-sub_nums proc
-	ret
-sub_nums endp
-
-
-add_nums proc
-	ret
-add_nums endp
-
-
-mul_nums proc
-	ret
-mul_nums endp
-
-
-div_nums proc
-	ret
-div_nums endp
-
-
-push_num proc
-	ret
-push_num endp
-
-
-pop_num proc
-	ret
-pop_num endp
 
 read_input proc
 	; save registers used
@@ -533,6 +520,13 @@ print_stack PROC
 	; get the index
 	mov esi,index
 
+	; print message if stack is empty
+	cmp esi, 0
+	jge print_stack_loop
+	mov edx, offset emptyStackErrorMsg
+	call WriteString
+	jmp end_print_stack
+
 print_stack_loop:
 	; check if index register is less than 0
 	cmp esi,0
@@ -556,7 +550,187 @@ end_print_stack:
 	pop eax
 	pop esi
 
+	; spacing
+	call Crlf
+
 	;return
 	ret
 print_stack ENDP
+
+push_num PROC
+	push esi					;save reg
+	cmp index, (stacksize-1)*4	;test if stack full
+	jge stack_full
+	add index, 4				;updates index location
+	mov esi, index				;gets index
+	mov num_stack[esi], eax		;moves num to new index location
+	clc							;clears carry
+	jmp end_push_num
+stack_full:
+	mov edx, offset generalCommandErrorMsg
+	call WriteString
+end_push_num:
+	pop esi
+	ret
+push_num ENDP
+
+pop_num PROC
+	push esi					;save reg
+	cmp index, 0				;test if stack is empty
+	jl stack_empty
+	mov esi, index				;get index
+	mov eax, num_stack[esi]		;get num from esi location into eax
+	sub index, 4				;update stack addy
+	clc							;clears carry
+	jmp end_pop_num
+stack_empty:
+	mov edx, offset generalCommandErrorMsg
+	call WriteString
+end_pop_num:
+	pop esi
+	ret
+pop_num ENDP
+
+sub_nums PROC
+;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	; error handling
+	clc
+	cmp index, 4
+	jl _error
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	sub eax, ebx				;subtracts second num by first num
+	call push_num				;puts result back into the num_stack
+	jmp end_minus_op
+
+_error:
+	stc
+
+end_minus_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+sub_nums ENDP
+
+
+add_nums PROC
+	;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	; error handling
+	clc
+	cmp index, 4
+	jl _error
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	add eax, ebx				;adds second num by first num
+	call push_num				;puts result back into the num_stack
+	jmp end_add_op
+
+_error:
+	stc
+
+end_add_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+add_nums ENDP
+
+
+mul_nums PROC
+	;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	; error handling
+	clc
+	cmp index, 4
+	jl _error
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	mul ebx						;multiplies second num by first num & eax is implicit
+	call push_num				;puts result back into the num_stack
+	jmp end_mult_op
+
+_error:
+	stc
+
+end_mult_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+mul_nums ENDP
+
+
+div_nums PROC
+;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	; error handling
+	clc
+	cmp index, 4
+	jl _error1
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	cmp ebx, 0
+	je _error2 ; divide by 0 error
+	call pop_num				;grabs second num
+	cmp eax, 0
+	je _error3 ; integer overflow: set result manually
+
+	idiv ebx					;divides second num by first num & eax is implicit
+	call push_num				;puts result back into the num_stack
+	jmp end_div_op
+
+_error2: ; dividend is 0; put back
+	mov eax, 0
+	call push_num
+_error1:
+	stc
+	jmp end_div_op
+
+_error3: ; 0 divided by some number; push 0 to stack
+	mov eax, 0
+	call push_num
+
+end_div_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+div_nums ENDP
 END main
