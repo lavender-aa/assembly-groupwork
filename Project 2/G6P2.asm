@@ -90,16 +90,16 @@ _c2: ; first character is a minus sign -- negative number OR subtract
 	mov ecx, sizeof buffer
 	call ParseInteger32
 	jo _c2err
-	; parce success; push number
+	; parse success; push number
 	call push_num
 	jno _end
 	mov edx, offset stackTooBigErrorMsg
 	call WriteString
 	jmp _end
-_c2err: ; parse fail; not a number, negate top element
+_c2err: ; parse fail; not a number, subtract operation
 	call sub_nums
 	jnc _end
-	mov edx, offset stackTooSmallErrorMsg ; cannot negate an empty stack
+	mov edx, offset stackTooSmallErrorMsg
 	call WriteString
 	jmp _end
 
@@ -349,16 +349,16 @@ exchange_top_two PROC
 	jl error_exchange_top_two
 
 	; pop the numbers and store them
-	;call pop_num	; pop the first number                                     TODO: uncomment when pop_num and push_num are written
+	call pop_num	; pop the first number
 	push eax		; push onto system stack
-	;call pop_num	; pop the second number
+	call pop_num	; pop the second number
 	mov ebx,eax	; store in temp register
 
 	; push the numbers in reverse order
 	pop eax		; pop the first number from system stack
-	;call push_num	; push onto the stack
+	call push_num	; push onto the stack
 	mov eax,ebx	; get the second number from temp register
-	;call push_num	; push onto the stack
+	call push_num	; push onto the stack
 
 	; indicate success
 	clc
