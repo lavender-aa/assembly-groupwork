@@ -451,4 +451,133 @@ end_print_stack:
 	;return
 	ret
 print_stack ENDP
+
+push_num PROC
+	push esi					;save reg
+	cmp index, (stacksize-1)*4	;test if stack full
+	jge stack_full
+	add index, 4				;updates index location
+	mov esi, index				;gets index
+	mov num_stack[esi], eax		;moves num to new index location
+	clc							;clears carry
+	jmp end_push_num
+stack_full:
+	mov edx, offset generalCommandErrorMsg
+	call WriteString
+end_push_num:
+	pop esi
+	ret
+push_num ENDP
+
+pop_num PROC
+	push esi					;save reg
+	cmp index, 0				;test if stack is empty
+	jl stack_empty
+	mov esi, index				;get index
+	mov eax, num_stack[esi]		;get num from esi location into eax
+	sub index, 4				;update stack addy
+	clc							;clears carry
+	jmp end_pop_num
+stack_empty:
+	mov edx, offset generalCommandErrorMsg
+	call WriteString
+end_pop_num:
+	pop esi
+	ret
+pop_num ENDP
+
+minus_op PROC
+;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	sub eax, ebx				;subtracts second num by first num
+	call push_num				;puts result back into the num_stack
+	jmp end_minus_op
+end_minus_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+minus_op ENDP
+
+
+add_op PROC
+	;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	add eax, ebx				;adds second num by first num
+	call push_num				;puts result back into the num_stack
+	jmp end_add_op
+end_add_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+add_op ENDP
+
+
+mult_op PROC
+	;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	mul ebx						;multiplies second num by first num & eax is implicit
+	call push_num				;puts result back into the num_stack
+	jmp end_mult_op
+end_mult_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+mult_op ENDP
+
+
+div_op PROC
+;Save the registers
+	push eax
+	push ebx
+	push esi
+
+	call pop_num				;grabs first num
+	mov ebx, eax				;holds first num
+	call pop_num				;grabs second num
+
+	div ebx						;divides second num by first num & eax is implicit
+	call push_num				;puts result back into the num_stack
+	jmp end_div_op
+end_div_op:
+	;Restore the registers
+	pop eax
+	pop ebx
+	pop esi
+
+	;return
+	ret
+div_op ENDP
 END main
