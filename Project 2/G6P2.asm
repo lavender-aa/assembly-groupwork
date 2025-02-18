@@ -18,6 +18,7 @@ generalCommandErrorMsg byte "Error: Cannot perform command.",cr,lf,0
 stackTooSmallErrorMsg byte "Error: Stack has too few elements to perform operation.",cr,lf,0
 stackTooBigErrorMsg byte "Error: Stack is full, cannot perform operation.",cr,lf,0
 parseIntErrorMsg byte "Error: Unable to parse input into an integer.",cr,lf,0
+emptyStackErrorMsg byte "Stack is empty.",cr,lf,0
 
 buffer byte 41 dup(0)
 bytecount dword 0
@@ -518,6 +519,13 @@ print_stack PROC
 
 	; get the index
 	mov esi,index
+
+	; print message if stack is empty
+	cmp esi, 0
+	jge print_stack_loop
+	mov edx, offset emptyStackErrorMsg
+	call WriteString
+	jmp end_print_stack
 
 print_stack_loop:
 	; check if index register is less than 0
