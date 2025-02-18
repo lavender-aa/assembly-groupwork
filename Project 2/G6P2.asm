@@ -486,7 +486,7 @@ end_pop_num:
 	ret
 pop_num ENDP
 
-minus_op PROC
+sub_nums PROC
 ;Save the registers
 	push eax
 	push ebx
@@ -507,10 +507,10 @@ end_minus_op:
 
 	;return
 	ret
-minus_op ENDP
+sub_nums ENDP
 
 
-add_op PROC
+add_nums PROC
 	;Save the registers
 	push eax
 	push ebx
@@ -531,10 +531,10 @@ end_add_op:
 
 	;return
 	ret
-add_op ENDP
+add_nums ENDP
 
 
-mult_op PROC
+mul_nums PROC
 	;Save the registers
 	push eax
 	push ebx
@@ -555,10 +555,10 @@ end_mult_op:
 
 	;return
 	ret
-mult_op ENDP
+mul_nums ENDP
 
 
-div_op PROC
+div_nums PROC
 ;Save the registers
 	push eax
 	push ebx
@@ -579,5 +579,5 @@ end_div_op:
 
 	;return
 	ret
-div_op ENDP
+div_nums ENDP
 END main
