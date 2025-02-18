@@ -29,6 +29,7 @@ menu byte "Options:",cr,lf
 	 byte tab,"*: multiply top two stack elements",cr,lf
 	 byte tab,"/: divide top two stack elements",cr,lf
 	 byte tab,"x: exchange top two stack elements",cr,lf
+	 byte tab,"n: negate top stack element",cr,lf
 	 byte tab,"u: roll stack up",cr,lf
 	 byte tab,"d: roll stack down",cr,lf
 	 byte tab,"v: view stack",cr,lf
@@ -205,8 +206,9 @@ negate_top proc
 	cmp index, 0
 	jl _error
 	mov esi, index
-	mov ebx, num_stack[esi]
-	mul eax
+	mov eax, num_stack[esi]
+	mov ebx, -1
+	imul ebx
 	mov num_stack[esi], eax
 	jmp _ret
 _error: ; stack empty; set carry flag
