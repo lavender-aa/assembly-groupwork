@@ -36,6 +36,7 @@ menu byte "Options:",cr,lf
 	 byte tab,"c: clear stack",cr,lf
 	 byte tab,"q: quit",cr,lf,cr,lf,0
 prompt byte "Enter choice: ",0
+top byte "Top element: ",0
 
 
 .code
@@ -46,10 +47,24 @@ main proc
 	call WriteString
 
 _loop:
+	; if it exists, print the top of the stack
+	cmp index, 0
+	jl _prompt
+	mov edx, offset top
+	call WriteString
+	mov esi, index
+	mov eax, num_stack[esi]
+	call WriteInt
+	call Crlf
+
+
+_prompt:
+
     ; prompt, get user input
 	mov edx, offset prompt
 	call WriteString
     call read_input
+	call Crlf
 
 	; command handler
 _switch:
@@ -527,6 +542,9 @@ end_print_stack:
 	pop eax
 	pop esi
 
+	; spacing
+	call Crlf
+
 	;return
 	ret
 print_stack ENDP
@@ -571,6 +589,11 @@ sub_nums PROC
 	push ebx
 	push esi
 
+	; error handling
+	clc
+	cmp index, 4
+	jl _error
+
 	call pop_num				;grabs first num
 	mov ebx, eax				;holds first num
 	call pop_num				;grabs second num
@@ -578,6 +601,10 @@ sub_nums PROC
 	sub eax, ebx				;subtracts second num by first num
 	call push_num				;puts result back into the num_stack
 	jmp end_minus_op
+
+_error:
+	stc
+
 end_minus_op:
 	;Restore the registers
 	pop eax
@@ -595,6 +622,11 @@ add_nums PROC
 	push ebx
 	push esi
 
+	; error handling
+	clc
+	cmp index, 4
+	jl _error
+
 	call pop_num				;grabs first num
 	mov ebx, eax				;holds first num
 	call pop_num				;grabs second num
@@ -602,6 +634,10 @@ add_nums PROC
 	add eax, ebx				;adds second num by first num
 	call push_num				;puts result back into the num_stack
 	jmp end_add_op
+
+_error:
+	stc
+
 end_add_op:
 	;Restore the registers
 	pop eax
@@ -619,6 +655,11 @@ mul_nums PROC
 	push ebx
 	push esi
 
+	; error handling
+	clc
+	cmp index, 4
+	jl _error
+
 	call pop_num				;grabs first num
 	mov ebx, eax				;holds first num
 	call pop_num				;grabs second num
@@ -626,6 +667,10 @@ mul_nums PROC
 	mul ebx						;multiplies second num by first num & eax is implicit
 	call push_num				;puts result back into the num_stack
 	jmp end_mult_op
+
+_error:
+	stc
+
 end_mult_op:
 	;Restore the registers
 	pop eax
@@ -643,13 +688,34 @@ div_nums PROC
 	push ebx
 	push esi
 
+	; error handling
+	clc
+	cmp index, 4
+	jl _error1
+
 	call pop_num				;grabs first num
 	mov ebx, eax				;holds first num
+	cmp ebx, 0
+	je _error2 ; divide by 0 error
 	call pop_num				;grabs second num
+	cmp eax, 0
+	je _error3 ; integer overflow: set result manually
 
-	div ebx						;divides second num by first num & eax is implicit
+	idiv ebx					;divides second num by first num & eax is implicit
 	call push_num				;puts result back into the num_stack
 	jmp end_div_op
+
+_error2: ; dividend is 0; put back
+	mov eax, 0
+	call push_num
+_error1:
+	stc
+	jmp end_div_op
+
+_error3: ; 0 divided by some number; push 0 to stack
+	mov eax, 0
+	call push_num
+
 end_div_op:
 	;Restore the registers
 	pop eax
