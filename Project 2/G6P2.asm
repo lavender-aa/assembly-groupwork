@@ -222,35 +222,6 @@ _ret:
 negate_top endp
 
 
-sub_nums proc
-	ret
-sub_nums endp
-
-
-add_nums proc
-	ret
-add_nums endp
-
-
-mul_nums proc
-	ret
-mul_nums endp
-
-
-div_nums proc
-	ret
-div_nums endp
-
-
-push_num proc
-	ret
-push_num endp
-
-
-pop_num proc
-	ret
-pop_num endp
-
 read_input proc
 	; save registers used
 	push ebx
