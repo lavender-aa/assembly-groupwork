@@ -28,7 +28,7 @@ changeTarget byte 'change',0
 loadTarget   byte 'load',0
 
 ; record data
-name byte 9 dup(0)
+name byte 8 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
@@ -63,6 +63,10 @@ tab equ 9
 quitMsg byte "Exiting program.",cr,lf,0
 commandPromptMsg byte cr,lf,"Enter a command: ",0
 invalidCommandMsg byte "Invalid command: ",0
+cancelMsg byte "Cancelling command.",0
+promptNameMsg byte "Enter a name for the job: ",0
+promptPriorMsg byte "Enter a priority for the job (0-7): ",0
+promptRuntMsg byte "Enter a runtime for the job (1-65536): ",0
 
 ; help message
 helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
@@ -115,13 +119,8 @@ commandHandler proc
     mov edx, offset commandPromptMsg
     call WriteString
 
-    ; empty previous input
-    mov esi, 0
-_emptyInput:
-    mov inputBuffer[esi], 0
-    inc esi
-    cmp esi, sizeof inputBuffer
-    jl _emptyInput
+    ; reset input
+    call resetInput
 
     ; get new input
     mov edx, offset inputBuffer
@@ -130,7 +129,6 @@ _emptyInput:
 
     call Crlf ; spacing
 
-    mov index, 0 ; reset index for new line
     call skipSpace ; move input to first word
     call getWord ; get word into buffer
 
@@ -222,6 +220,23 @@ _continue:
 _ret:
     ret
 commandHandler endp
+
+
+
+
+; clears the input buffer and resets index
+resetInput proc
+    push esi
+    mov index, 0
+    mov esi, 0
+_emptyInput:
+    mov inputBuffer[esi], 0
+    inc esi
+    cmp esi, sizeof inputBuffer
+    jl _emptyInput
+    pop esi
+    ret
+resetInput endp
 
 
 
@@ -335,7 +350,7 @@ findJob proc
 
     clc ; only set carry flag if job found
 
-    mov eax, jname ; store name offset in eax
+    mov eax, name ; store name offset in eax
     mov ebx, offset jobptr ; store starting job pointer location
     jmp _loop
 _updateJob:
@@ -440,8 +455,197 @@ changeCommand endp
 ; takes: name, priority, runtime
 ; desc: creates a new job
 loadCommand proc
+    push eax ; save registers
+    push esi
+    push edi
+    push ecx
+    push edx
+
+    ; if there is no space: cancel
+    ; else: test input for next data
+    call spaceAvailable
+    jc _testName
+    jmp _cancel
+
+_testName: ; test input buffer; get name if there is more, prompt/get if not
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptName
+    ; past: take name from buffer
+    call getWord
+    jmp _validateName
+
+_promptName: ; prompt for and read name
+    mov edx, offset promptNameMsg
+    call WriteString
+
+    mov edx, offset wordBuffer
+    mov ecx, sizeof wordBuffer
+    call ReadString
+    call Crlf
+
+_validateName: ; if name is empty, cancel; else if invalid, reprompt; else, continue
+    cmp wordBuffer, 0
+    je _cancel
+
+    mov esi, offset wordBuffer ; copy wordbuffer to name for finding
+    mov edi, offset name
+    mov ecx, sizeof name
+    rep movsb
+
+    ; validate: name is unique
+    call findJob
+    jc _promptName ; job with same name found; try again
+
+_testPriority:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptPriority
+    ; past: take name from buffer
+    call getWord
+    jmp _validatePriority
+
+_promptPriority:
+    mov edx, offset promptPriorMsg
+    call WriteString
+
+    mov edx, offset wordBuffer
+    mov ecx, sizeof wordBuffer
+    call ReadString
+    call Crlf
+
+_validatePriority: ; first byte 0-7, second byte null
+    mov ah, wordBuffer[1]
+    cmp ah, 0
+    je _promptPriority
+    mov al, wordBuffer
+    cmp al, '0'
+    jl _promptPriority
+    cm pal, '7'
+    jg _promptPriority
+
+    sub al, '0'
+    mov priority, al
+
+_testRuntime:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptRuntime
+    ; past: take name from buffer
+    call getWord
+    jmp _validateRuntime
+
+_promptRuntime:
+    mov edx, offset promptRuntMsg
+    call WriteString
+
+    mov edx, offset wordBuffer
+    mov ecx, sizeof wordBuffer
+    call ReadString
+    call Crlf
+
+_validateRuntime: ; parse integer succeeds, value is not 0, value is less than 65536
+    mov edx, wordBuffer
+    call ParseInt32
+    jc _promptRuntime
+    cmp eax, 0
+    jle _promptRuntime
+    cmp eax, 65536
+    jge _promptRuntime
+    mov runtime, ax
+    jmp _createRecord ; got all data, make record
+    
+
+_cancel: ; print message, clear npriority, runtime, name
+    mov edx, offset cancelMsg
+    call WriteString
+    mov priority, 0
+    mov runtime, 0
+    mov eax, 0
+_clearName:
+    mov name[eax], 0
+    inc eax
+    cmp eax, sizeof name
+    jl _clearName
+    jmp _ret
+
+_createRecord: ; jobptr already pointing at available slot
+    ; set variables
+    mov eax, system_time
+    mov loadtime, eax ; store load time
+    mov al, jhold
+    mov status, al ; start in hold mode
+
+    ; set name
+    mov esi, name
+    mov eax, jname
+    mov edi, jobptr[eax]
+    mov ecx, sizeof name
+    rep movsb
+
+    ; set priority
+    mov dl, priority
+    mov eax, jpriority
+    mov jobptr[eax], dl
+
+    ; set status
+    mov dl, status
+    mov eax, jstatus
+    mov jobptr[eax], dl
+
+    ; set runtime
+    mov dx, runtime
+    mov eax, jruntime
+    mov jobptr[eax], dx
+
+    ; set loadtime
+    mov dx, system_time
+    mov eax, jloadtime
+    mov jobptr[eax], dx
+
+_ret:
+    pop edx
+    pop ecx
+    pop edi
+    pop esi
+    pop eax ; restore registers
     ret
 loadCommand endp
+
+
+
+
+; carry flag set: one available space, jobptr points to it
+; carry flag unset: no spaces available
+spaceAvailable proc
+    push eax ; save registers
+    push esi
+    push ebx
+
+    clc ; set default to false
+
+    mov eax, jobptr ; store original location
+    mov esi, jstatus
+    jmp _loop
+_incJob
+    call nextJob
+    cmp jobptr, eax
+    je _ret
+_loop:
+    mov ebx, jobptr + esi
+    cmp byte ptr [ebx], 0 ; testing if status is available
+    jne _incJob ; if not, move on to next job
+    stc ; if so, found available; set carry, return
+
+_ret:
+    pop ebx
+    pop esi
+    pop eax ; restore registers
+    ret
+spaceAvailable endp
 
 
 END main
