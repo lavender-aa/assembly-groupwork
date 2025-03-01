@@ -60,8 +60,37 @@ cr equ 13
 lf equ 10
 tab equ 9
 quitMsg byte "Exiting program.",cr,lf,0
-commandPromptMsg byte "Enter a command: ",0
+commandPromptMsg byte cr,lf,"Enter a command: ",0
 invalidCommandMsg byte "Invalid command: ",0
+
+; quit help show run hold kill step change load
+; help message
+helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
+        byte "Jobs can be run by the system, and have 5 elmeents:",cr,lf
+        byte tab,"name: a unique 8-character name for the job.",cr,lf
+        byte tab,"prority: a number 0-7 (highest-lowest) for which jobs should be run first.",cr,lf
+        byte tab,"status: either 'available' (0), 'holding' (1), or 'running' (2).",cr,lf
+        byte tab,"runtime: the number of clock cycles the job takes to complete.",cr,lf
+        byte tab,"loadtime: the system time at which the job was first loaded.",cr,lf,cr,lf
+        byte "When a clock cycle is processed, the job with the next highest priority will have its runtime decremented.",cr,lf
+        byte "When a job's runtime reaches 0, the job is removed from the list.",cr,lf
+        byte "There can only be up to 10 jobs at once.",cr,lf,cr,lf
+        byte "Commands are not case sensitive, and neither are names (both are converted to lowercase).",cr,lf
+        byte "Below is a list of commands. The items in [brackets] are optional but will be prompted for,",cr,lf
+        byte "and the items in (parenthesis) are optional and have default values.",cr,lf
+        byte "If any prompted-for field is left empty, the command will be cancelled.",cr,lf,cr,lf
+        byte "Command descriptions have this form:",cr,lf
+        byte "Command Name:",cr,lf,tab,"'Syntax, options'",cr,lf,tab,"Description",cr,lf,cr,lf
+        byte "Commands:",cr,lf,"---------",cr,lf,cr,lf
+        byte "Quit:",cr,lf,tab,"'quit'",cr,lf,tab,"Quits the program.",cr,lf,cr,lf
+        byte "Help:",cr,lf,tab,"'help'",cr,lf,tab,"Displays this message.",cr,lf,cr,lf
+        byte "Show:",cr,lf,tab,"'show'",cr,lf,tab,"Displays all jobs.",cr,lf,cr,lf
+        byte "Run:",cr,lf,tab,"'run [name]'",cr,lf,tab,"Changes the status of a job from 'hold' to 'run'.",cr,lf,cr,lf
+        byte "Hold:",cr,lf,tab,"'hold [name]'",cr,lf,tab,"Changes the status of a job from 'run' to 'hold'.",cr,lf,cr,lf
+        byte "Kill:",cr,lf,tab,"'kill [name]'",cr,lf,tab,"Removes a job whose status is 'hold'.",cr,lf,cr,lf
+        byte "Step:",cr,lf,tab,"'step (num_steps)'",cr,lf,tab,"Processes a positive integer number of clock cycles.",cr,lf,cr,lf
+        byte "Change:",cr,lf,tab,"'change [name [new_priority]]'",cr,lf,tab,"Changes a job's priority.'",cr,lf,cr,lf
+        byte "Load:",cr,lf,tab,"'load [name [priority [runtime]]]'",cr,lf,tab,"Creates a new job if there is space.",cr,lf,0
 
 ; debug
 debug byte 'debug',0
@@ -99,6 +128,8 @@ _emptyInput:
     mov ecx, sizeof inputBuffer
     call ReadString
 
+    call Crlf ; spacing
+
     mov index, 0 ; reset index for new line
     call skipSpace ; move input to first word
     call getWord ; get word into buffer
@@ -119,7 +150,7 @@ _help:
     mov ecx, sizeof helpTarget
     repe cmpsb
     jne _show
-    mov edx, offset helpTarget
+    mov edx, offset helpMsg
     call WriteString
     jmp _continue
 _show:
