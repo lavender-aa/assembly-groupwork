@@ -323,6 +323,8 @@ toLower endp
 
 
 
+; takes: nothing
+; desc: shows all non-available records
 showCommand proc
     ret
 showCommand endp
@@ -330,6 +332,8 @@ showCommand endp
 
 
 
+; takes: name
+; desc: changes a job from hold to run
 runCommand proc
     ret
 runCommand endp
@@ -337,6 +341,8 @@ runCommand endp
 
 
 
+; takes: name
+; desc: changes a job from run to hold
 holdCommand proc
     ret
 holdCommand endp
@@ -344,6 +350,8 @@ holdCommand endp
 
 
 
+; takes: name
+; desc: removes a job if it is in hold mode
 killCommand proc
     ret
 killCommand endp
@@ -351,6 +359,8 @@ killCommand endp
 
 
 
+; takes: number or nothing
+; desc: processes n steps
 stepCommand proc
     ret
 stepCommand endp
@@ -358,6 +368,8 @@ stepCommand endp
 
 
 
+; takes: name, new_priority
+; desc: changes job's priority
 changeCommand proc
     ret
 changeCommand endp
@@ -365,17 +377,11 @@ changeCommand endp
 
 
 
+; takes: name, priority, runtime
+; desc: creates a new job
 loadCommand proc
     ret
 loadCommand endp
-
-
-
-
-
-
-
-
 
 
 END main
