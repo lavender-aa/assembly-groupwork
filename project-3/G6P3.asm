@@ -51,9 +51,10 @@ jlowestpriority equ 7
 jobsize equ 14
 numjobs equ 10
 
-; jobs
+; jobs, pointer
 jobs byte numjobs * jobsize dup(0)
 endjobs dword endjobs ; memory location that stores its own location
+jobptr dword jobs
 
 ; messages
 cr equ 13
@@ -323,6 +324,65 @@ toLower endp
 
 
 
+; takes: name
+; desc: if job exists, move jobptr there; otherwise, do nothing
+;       carry flag set: found
+;       carry flag unset: not found
+findJob proc
+    push eax ; save registers
+    push esi
+    push ebx
+
+    clc ; only set carry flag if job found
+
+    mov eax, jname ; store name offset in eax
+    mov ebx, offset jobptr ; store starting job pointer location
+    jmp _loop
+_updateJob:
+    call nextJob
+    cmp jobptr, ebx
+    je _ret ; if job pointer becomes where it started, not found
+_loop:
+    mov esi, jobptr[eax] ; store beginning of job name
+    mov edi, name ; store beginning of acquired name (will not be empty)
+    mov ecx, sizeof name
+    rep cmpsb
+    jne _updateJob
+    stc ; name is equal; match found, jobptr is pointing to it
+
+_ret:
+    pop ebx
+    pop esi
+    pop eax ; restore registers
+    ret
+findJob endp
+
+
+
+
+; increments the job pointer, wrapping it around to the start
+nextJob proc
+    push eax ; save registers
+
+    add jobptr, jobsize ; go to next record
+
+    mov eax, offset endjobs
+    cmp jobptr, eax
+    jge _begin ; if index is too large, wrap to beginning
+    jmp _ret
+
+_begin:
+    mov eax, offset jobs
+    mov jobptr, eax
+    
+_ret:
+    push eax ; restore registers
+    ret
+nextJob endp
+
+
+
+
 ; takes: nothing
 ; desc: shows all non-available records
 showCommand proc
@@ -369,7 +429,7 @@ stepCommand endp
 
 
 ; takes: name, new_priority
-; desc: changes job's priority
+; desc: changes job priority
 changeCommand proc
     ret
 changeCommand endp
