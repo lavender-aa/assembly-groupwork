@@ -86,7 +86,15 @@ commandHandler proc
     mov edx, offset commandPromptMsg
     call WriteString
 
-    ; get input
+    ; empty previous input
+    mov esi, 0
+_emptyInput:
+    mov inputBuffer[esi], 0
+    inc esi
+    cmp esi, sizeof inputBuffer
+    jl _emptyInput
+
+    ; get new input
     mov edx, offset inputBuffer
     mov ecx, sizeof inputBuffer
     call ReadString
@@ -95,71 +103,83 @@ commandHandler proc
     call skipSpace ; move input to first word
     call getWord ; get word into buffer
 
-    ; debug
-    mov edx, offset debug
-    call WriteString
-
     ; test word
-    cld ; set forward direction
-    mov esi, offset wordBuffer
-    mov ecx, lengthof wordBuffer
+    cld
 _quit:
+    mov esi, offset wordBuffer
     mov edi, offset quitTarget
+    mov ecx, sizeof quitTarget
     repe cmpsb
     jne _help
     clc ; stop main loop
     jmp _ret
 _help:
+    mov esi, offset wordBuffer
     mov edi, offset helpTarget
+    mov ecx, sizeof helpTarget
     repe cmpsb
     jne _show
     mov edx, offset helpTarget
     call WriteString
     jmp _continue
 _show:
+    mov esi, offset wordBuffer
     mov edi, offset showTarget
+    mov ecx, sizeof showTarget
     repe cmpsb
     jne _run
     mov edx, offset showTarget
     call WriteString
     jmp _continue
 _run:
+    mov esi, offset wordBuffer
     mov edi, offset runTarget
+    mov ecx, sizeof runTarget
     repe cmpsb
     jne _hold
     mov edx, offset runTarget
     call WriteString
     jmp _continue
 _hold:
+    mov esi, offset wordBuffer
     mov edi, offset holdTarget
+    mov ecx, sizeof holdTarget
     repe cmpsb
     jne _kill
     mov edx, offset holdTarget
     call WriteString
     jmp _continue
 _kill:
+    mov esi, offset wordBuffer
     mov edi, offset killTarget
+    mov ecx, sizeof killTarget
     repe cmpsb
     jne _step
     mov edx, offset killTarget
     call WriteString
     jmp _continue
 _step:
+    mov esi, offset wordBuffer
     mov edi, offset stepTarget
+    mov ecx, sizeof stepTarget
     repe cmpsb
     jne _change
     mov edx, offset stepTarget
     call WriteString
     jmp _continue
 _change:
+    mov esi, offset wordBuffer
     mov edi, offset changeTarget
+    mov ecx, sizeof changeTarget
     repe cmpsb
     jne _load
     mov edx, offset changeTarget
     call WriteString
     jmp _continue
 _load:
+    mov esi, offset wordBuffer
     mov edi, offset loadTarget
+    mov ecx, sizeof loadTarget
     repe cmpsb
     jne _default
     mov edx, offset loadTarget
@@ -189,13 +209,15 @@ skipSpace proc
     ; loop through input buffer, start at index
     ; and end when nonwhitespace is found
     mov esi, index
-_loop:
+    jmp _loop
+_inc:
     inc esi
+_loop:
     cmp esi, sizeof inputBuffer
     jge _ret
     mov al, inputBuffer[esi]
     call isSpace
-    jc _loop
+    jc _inc
 _ret:
     mov index, esi ; update index
     pop esi
@@ -247,22 +269,33 @@ _loop:
     mov al, inputBuffer[esi]
     call isSpace
     jc _updateIndex
+    call toLower
     mov wordBuffer[edi], al
+    inc esi
     inc edi
     jmp _loop
 
 _updateIndex:
     mov index, esi
 _ret:
-
-    ; debug
-    mov edx, offset wordBuffer
-    call WriteString
-
-    push edi
-    push esi ; restore registers
+    pop edi
+    pop esi ; restore registers
     ret
 getWord endp
+
+
+
+
+; turns a capital letter stored in al to lowercase
+toLower proc
+    cmp al, 'A'
+    jl _ret
+    cmp al, 'Z'
+    jg _ret
+    or al, 20h
+_ret:
+    ret
+toLower endp
 
 
 
