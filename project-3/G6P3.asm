@@ -63,7 +63,6 @@ quitMsg byte "Exiting program.",cr,lf,0
 commandPromptMsg byte cr,lf,"Enter a command: ",0
 invalidCommandMsg byte "Invalid command: ",0
 
-; quit help show run hold kill step change load
 ; help message
 helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
         byte "Jobs can be run by the system, and have 5 elmeents:",cr,lf
@@ -159,8 +158,7 @@ _show:
     mov ecx, sizeof showTarget
     repe cmpsb
     jne _run
-    mov edx, offset showTarget
-    call WriteString
+    call showCommand
     jmp _continue
 _run:
     mov esi, offset wordBuffer
@@ -168,8 +166,7 @@ _run:
     mov ecx, sizeof runTarget
     repe cmpsb
     jne _hold
-    mov edx, offset runTarget
-    call WriteString
+    call runCommand
     jmp _continue
 _hold:
     mov esi, offset wordBuffer
@@ -177,8 +174,7 @@ _hold:
     mov ecx, sizeof holdTarget
     repe cmpsb
     jne _kill
-    mov edx, offset holdTarget
-    call WriteString
+    call holdCommand
     jmp _continue
 _kill:
     mov esi, offset wordBuffer
@@ -186,8 +182,7 @@ _kill:
     mov ecx, sizeof killTarget
     repe cmpsb
     jne _step
-    mov edx, offset killTarget
-    call WriteString
+    call killCommand
     jmp _continue
 _step:
     mov esi, offset wordBuffer
@@ -195,8 +190,7 @@ _step:
     mov ecx, sizeof stepTarget
     repe cmpsb
     jne _change
-    mov edx, offset stepTarget
-    call WriteString
+    call stepCommand
     jmp _continue
 _change:
     mov esi, offset wordBuffer
@@ -204,8 +198,7 @@ _change:
     mov ecx, sizeof changeTarget
     repe cmpsb
     jne _load
-    mov edx, offset changeTarget
-    call WriteString
+    call changeCommand
     jmp _continue
 _load:
     mov esi, offset wordBuffer
@@ -213,8 +206,7 @@ _load:
     mov ecx, sizeof loadTarget
     repe cmpsb
     jne _default
-    mov edx, offset loadTarget
-    call WriteString
+    call loadCommand
     jmp _continue
 _default:
     ; print error message
@@ -329,6 +321,53 @@ _ret:
 toLower endp
 
 
+
+
+showCommand proc
+    ret
+showCommand endp
+
+
+
+
+runCommand proc
+    ret
+runCommand endp
+
+
+
+
+holdCommand proc
+    ret
+holdCommand endp
+
+
+
+
+killCommand proc
+    ret
+killCommand endp
+
+
+
+
+stepCommand proc
+    ret
+stepCommand endp
+
+
+
+
+changeCommand proc
+    ret
+changeCommand endp
+
+
+
+
+loadCommand proc
+    ret
+loadCommand endp
 
 
 
