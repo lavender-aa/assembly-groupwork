@@ -32,6 +32,9 @@ nameBuffer byte 8 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
+loadtime word 0
+
+; system time
 system_time word 0
 
 ; record field offsets
@@ -523,7 +526,7 @@ _validatePriority: ; first byte 0-7, second byte null
     mov al, wordBuffer
     cmp al, '0'
     jl _promptPriority
-    cmp pal, '7'
+    cmp al, '7'
     jg _promptPriority
 
     sub al, '0'
@@ -548,8 +551,8 @@ _promptRuntime:
     call Crlf
 
 _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 65536
-    mov edx, wordBuffer
-    call ParseInt32
+    mov edx, offset wordBuffer
+    call ParseInteger32
     jc _promptRuntime
     cmp eax, 0
     jle _promptRuntime
@@ -574,13 +577,13 @@ _clearnameBuffer:
 
 _createRecord: ; jobptr already pointing at available slot
     ; set variables
-    mov eax, system_time
-    mov loadtime, eax ; store load time
+    mov ax, system_time
+    mov loadtime, ax ; store load time
     mov al, jhold
     mov status, al ; start in hold mode
 
     ; set nameBuffer
-    mov esi, nameBuffer
+    mov esi, offset nameBuffer
     mov eax, jnameBuffer
     mov edi, jobptr[eax]
     mov ecx, sizeof nameBuffer
@@ -589,22 +592,22 @@ _createRecord: ; jobptr already pointing at available slot
     ; set priority
     mov dl, priority
     mov eax, jpriority
-    mov jobptr[eax], dl
+    mov byte ptr jobptr[eax], dl
 
     ; set status
     mov dl, status
     mov eax, jstatus
-    mov jobptr[eax], dl
+    mov byte ptr jobptr[eax], dl
 
     ; set runtime
     mov dx, runtime
     mov eax, jruntime
-    mov jobptr[eax], dx
+    mov word ptr jobptr[eax], dx
 
     ; set loadtime
     mov dx, system_time
     mov eax, jloadtime
-    mov jobptr[eax], dx
+    mov word ptr jobptr[eax], dx
 
 _ret:
     pop edx
@@ -632,10 +635,11 @@ spaceAvailable proc
     jmp _loop
 _incJob:
     call nextJob
-    cmp jobptr, eax
+    cmp ebx, eax
     je _ret
 _loop:
-    mov ebx, jobptr + esi
+    mov ebx, jobptr
+    add ebx, esi
     cmp byte ptr [ebx], 0 ; testing if status is available
     jne _incJob ; if not, move on to next job
     stc ; if so, found available; set carry, return
