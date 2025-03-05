@@ -28,14 +28,14 @@ changeTarget byte 'change',0
 loadTarget   byte 'load',0
 
 ; record data
-name byte 8 dup(0)
+nameBuffer byte 8 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
 system_time word 0
 
 ; record field offsets
-jname equ 0
+jnameBuffer equ 0
 jpriority equ 8
 jstatus equ 9
 jruntime equ 10
@@ -64,14 +64,14 @@ quitMsg byte "Exiting program.",cr,lf,0
 commandPromptMsg byte cr,lf,"Enter a command: ",0
 invalidCommandMsg byte "Invalid command: ",0
 cancelMsg byte "Cancelling command.",0
-promptNameMsg byte "Enter a name for the job: ",0
+promptnameBufferMsg byte "Enter a nameBuffer for the job: ",0
 promptPriorMsg byte "Enter a priority for the job (0-7): ",0
 promptRuntMsg byte "Enter a runtime for the job (1-65536): ",0
 
 ; help message
 helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
         byte "Jobs can be run by the system, and have 5 elmeents:",cr,lf
-        byte tab,"name: a unique 8-character name for the job.",cr,lf
+        byte tab,"nameBuffer: a unique 8-character nameBuffer for the job.",cr,lf
         byte tab,"prority: a number 0-7 (highest-lowest) for which jobs should be run first.",cr,lf
         byte tab,"status: either 'available' (0), 'holding' (1), or 'running' (2).",cr,lf
         byte tab,"runtime: the number of clock cycles the job takes to complete.",cr,lf
@@ -79,22 +79,22 @@ helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
         byte "When a clock cycle is processed, the job with the next highest priority will have its runtime decremented.",cr,lf
         byte "When a job's runtime reaches 0, the job is removed from the list.",cr,lf
         byte "There can only be up to 10 jobs at once.",cr,lf,cr,lf
-        byte "Commands are not case sensitive, and neither are names (both are converted to lowercase).",cr,lf
+        byte "Commands are not case sensitive, and neither are nameBuffers (both are converted to lowercase).",cr,lf
         byte "Below is a list of commands. The items in [brackets] are optional but will be prompted for,",cr,lf
         byte "and the items in (parenthesis) are optional and have default values.",cr,lf
         byte "If any prompted-for field is left empty, the command will be cancelled.",cr,lf,cr,lf
         byte "Command descriptions have this form:",cr,lf
-        byte "Command Name:",cr,lf,tab,"'Syntax, options'",cr,lf,tab,"Description",cr,lf,cr,lf
+        byte "Command nameBuffer:",cr,lf,tab,"'Syntax, options'",cr,lf,tab,"Description",cr,lf,cr,lf
         byte "Commands:",cr,lf,"---------",cr,lf,cr,lf
         byte "Quit:",cr,lf,tab,"'quit'",cr,lf,tab,"Quits the program.",cr,lf,cr,lf
         byte "Help:",cr,lf,tab,"'help'",cr,lf,tab,"Displays this message.",cr,lf,cr,lf
         byte "Show:",cr,lf,tab,"'show'",cr,lf,tab,"Displays all jobs.",cr,lf,cr,lf
-        byte "Run:",cr,lf,tab,"'run [name]'",cr,lf,tab,"Changes the status of a job from 'hold' to 'run'.",cr,lf,cr,lf
-        byte "Hold:",cr,lf,tab,"'hold [name]'",cr,lf,tab,"Changes the status of a job from 'run' to 'hold'.",cr,lf,cr,lf
-        byte "Kill:",cr,lf,tab,"'kill [name]'",cr,lf,tab,"Removes a job whose status is 'hold'.",cr,lf,cr,lf
+        byte "Run:",cr,lf,tab,"'run [nameBuffer]'",cr,lf,tab,"Changes the status of a job from 'hold' to 'run'.",cr,lf,cr,lf
+        byte "Hold:",cr,lf,tab,"'hold [nameBuffer]'",cr,lf,tab,"Changes the status of a job from 'run' to 'hold'.",cr,lf,cr,lf
+        byte "Kill:",cr,lf,tab,"'kill [nameBuffer]'",cr,lf,tab,"Removes a job whose status is 'hold'.",cr,lf,cr,lf
         byte "Step:",cr,lf,tab,"'step (num_steps)'",cr,lf,tab,"Processes a positive integer number of clock cycles.",cr,lf,cr,lf
-        byte "Change:",cr,lf,tab,"'change [name [new_priority]]'",cr,lf,tab,"Changes a job's priority.'",cr,lf,cr,lf
-        byte "Load:",cr,lf,tab,"'load [name [priority [runtime]]]'",cr,lf,tab,"Creates a new job if there is space.",cr,lf,0
+        byte "Change:",cr,lf,tab,"'change [nameBuffer [new_priority]]'",cr,lf,tab,"Changes a job's priority.'",cr,lf,cr,lf
+        byte "Load:",cr,lf,tab,"'load [nameBuffer [priority [runtime]]]'",cr,lf,tab,"Creates a new job if there is space.",cr,lf,0
 
 ; debug
 debug byte 'debug',0
@@ -339,7 +339,7 @@ toLower endp
 
 
 
-; takes: name
+; takes: nameBuffer
 ; desc: if job exists, move jobptr there; otherwise, do nothing
 ;       carry flag set: found
 ;       carry flag unset: not found
@@ -350,7 +350,7 @@ findJob proc
 
     clc ; only set carry flag if job found
 
-    mov eax, offset name ; store name offset in eax
+    mov eax, offset nameBuffer ; store nameBuffer offset in eax
     mov ebx, offset jobptr ; store starting job pointer location
     jmp _loop
 _updateJob:
@@ -358,12 +358,12 @@ _updateJob:
     cmp jobptr, ebx
     je _ret ; if job pointer becomes where it started, not found
 _loop:
-    mov esi, jobptr[eax] ; store beginning of job name
-    mov edi, offset name ; store beginning of acquired name (will not be empty)
-    mov ecx, sizeof name
+    mov esi, jobptr[eax] ; store beginning of job nameBuffer
+    mov edi, offset nameBuffer ; store beginning of acquired nameBuffer (will not be empty)
+    mov ecx, sizeof nameBuffer
     repe cmpsb
     jne _updateJob
-    stc ; name is equal; match found, jobptr is pointing to it
+    stc ; nameBuffer is equal; match found, jobptr is pointing to it
 
 _ret:
     pop ebx
@@ -407,7 +407,7 @@ showCommand endp
 
 
 
-; takes: name
+; takes: nameBuffer
 ; desc: changes a job from hold to run
 runCommand proc
     ret
@@ -416,7 +416,7 @@ runCommand endp
 
 
 
-; takes: name
+; takes: nameBuffer
 ; desc: changes a job from run to hold
 holdCommand proc
     ret
@@ -425,7 +425,7 @@ holdCommand endp
 
 
 
-; takes: name
+; takes: nameBuffer
 ; desc: removes a job if it is in hold mode
 killCommand proc
     ret
@@ -443,7 +443,7 @@ stepCommand endp
 
 
 
-; takes: name, new_priority
+; takes: nameBuffer, new_priority
 ; desc: changes job priority
 changeCommand proc
     ret
@@ -452,7 +452,7 @@ changeCommand endp
 
 
 
-; takes: name, priority, runtime
+; takes: nameBuffer, priority, runtime
 ; desc: creates a new job
 loadCommand proc
     push eax ; save registers
@@ -464,20 +464,20 @@ loadCommand proc
     ; if there is no space: cancel
     ; else: test input for next data
     call spaceAvailable
-    jc _testName
+    jc _testnameBuffer
     jmp _cancel
 
-_testName: ; test input buffer; get name if there is more, prompt/get if not
+_testnameBuffer: ; test input buffer; get nameBuffer if there is more, prompt/get if not
     call skipSpace
     mov eax, index
     cmp eax, sizeof inputBuffer
-    jge _promptName
-    ; past: take name from buffer
+    jge _promptnameBuffer
+    ; past: take nameBuffer from buffer
     call getWord
-    jmp _validateName
+    jmp _validatenameBuffer
 
-_promptName: ; prompt for and read name
-    mov edx, offset promptNameMsg
+_promptnameBuffer: ; prompt for and read nameBuffer
+    mov edx, offset promptnameBufferMsg
     call WriteString
 
     mov edx, offset wordBuffer
@@ -485,25 +485,25 @@ _promptName: ; prompt for and read name
     call ReadString
     call Crlf
 
-_validateName: ; if name is empty, cancel; else if invalid, reprompt; else, continue
+_validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt; else, continue
     cmp wordBuffer, 0
     je _cancel
 
-    mov esi, offset wordBuffer ; copy wordbuffer to name for finding
-    mov edi, offset name
-    mov ecx, sizeof name
+    mov esi, offset wordBuffer ; copy wordbuffer to nameBuffer for finding
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
     rep movsb
 
-    ; validate: name is unique
+    ; validate: nameBuffer is unique
     call findJob
-    jc _promptName ; job with same name found; try again
+    jc _promptnameBuffer ; job with same nameBuffer found; try again
 
 _testPriority:
     call skipSpace
     mov eax, index
     cmp eax, sizeof inputBuffer
     jge _promptPriority
-    ; past: take name from buffer
+    ; past: take nameBuffer from buffer
     call getWord
     jmp _validatePriority
 
@@ -534,7 +534,7 @@ _testRuntime:
     mov eax, index
     cmp eax, sizeof inputBuffer
     jge _promptRuntime
-    ; past: take name from buffer
+    ; past: take nameBuffer from buffer
     call getWord
     jmp _validateRuntime
 
@@ -559,17 +559,17 @@ _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 6
     jmp _createRecord ; got all data, make record
     
 
-_cancel: ; print message, clear npriority, runtime, name
+_cancel: ; print message, clear npriority, runtime, nameBuffer
     mov edx, offset cancelMsg
     call WriteString
     mov priority, 0
     mov runtime, 0
     mov eax, 0
-_clearName:
-    mov name[eax], 0
+_clearnameBuffer:
+    mov nameBuffer[eax], 0
     inc eax
-    cmp eax, sizeof name
-    jl _clearName
+    cmp eax, sizeof nameBuffer
+    jl _clearnameBuffer
     jmp _ret
 
 _createRecord: ; jobptr already pointing at available slot
@@ -579,11 +579,11 @@ _createRecord: ; jobptr already pointing at available slot
     mov al, jhold
     mov status, al ; start in hold mode
 
-    ; set name
-    mov esi, name
-    mov eax, jname
+    ; set nameBuffer
+    mov esi, nameBuffer
+    mov eax, jnameBuffer
     mov edi, jobptr[eax]
-    mov ecx, sizeof name
+    mov ecx, sizeof nameBuffer
     rep movsb
 
     ; set priority
