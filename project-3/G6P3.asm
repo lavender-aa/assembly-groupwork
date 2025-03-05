@@ -350,7 +350,7 @@ findJob proc
 
     clc ; only set carry flag if job found
 
-    mov eax, name ; store name offset in eax
+    mov eax, offset name ; store name offset in eax
     mov ebx, offset jobptr ; store starting job pointer location
     jmp _loop
 _updateJob:
@@ -359,9 +359,9 @@ _updateJob:
     je _ret ; if job pointer becomes where it started, not found
 _loop:
     mov esi, jobptr[eax] ; store beginning of job name
-    mov edi, name ; store beginning of acquired name (will not be empty)
+    mov edi, offset name ; store beginning of acquired name (will not be empty)
     mov ecx, sizeof name
-    rep cmpsb
+    repe cmpsb
     jne _updateJob
     stc ; name is equal; match found, jobptr is pointing to it
 
@@ -523,7 +523,7 @@ _validatePriority: ; first byte 0-7, second byte null
     mov al, wordBuffer
     cmp al, '0'
     jl _promptPriority
-    cm pal, '7'
+    cmp pal, '7'
     jg _promptPriority
 
     sub al, '0'
@@ -630,7 +630,7 @@ spaceAvailable proc
     mov eax, jobptr ; store original location
     mov esi, jstatus
     jmp _loop
-_incJob
+_incJob:
     call nextJob
     cmp jobptr, eax
     je _ret
