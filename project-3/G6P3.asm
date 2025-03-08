@@ -364,7 +364,8 @@ _incJob:
     cmp eax, ebx
     je _ret ; if the current job is the original, job not found
 _while:
-    mov edi, eax + edx ; store offset of current job name
+    mov edi, eax
+    add edi, edx ; store offset of current job name
 
     mov ecx, sizeof nameBuffer ; max number of characters to read
     repe cmpsb ; compare input with current job name
