@@ -70,6 +70,7 @@ cancelMsg byte "Cancelling command.",0
 promptnameBufferMsg byte "Enter a nameBuffer for the job: ",0
 promptPriorMsg byte "Enter a priority for the job (0-7): ",0
 promptRuntMsg byte "Enter a runtime for the job (1-65536): ",0
+promptBadDataMsg byte "Invalid data entered.",cr,lf,0
 
 ; help message
 helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
@@ -488,6 +489,9 @@ _testnameBuffer: ; test input buffer; get nameBuffer if there is more, prompt/ge
     call getWord
     jmp _validatenameBuffer
 
+_invalidName:
+    mov edx, offset promptBadDataMsg
+    call WriteString
 _promptnameBuffer: ; prompt for and read nameBuffer
     mov edx, offset promptnameBufferMsg
     call WriteString
@@ -508,7 +512,7 @@ _validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt
 
     ; validate: nameBuffer is unique
     call findJob
-    jc _promptnameBuffer ; job with same nameBuffer found; try again
+    jc _invalidName ; job with same nameBuffer found; try again
 
 _testPriority:
     call skipSpace
@@ -519,6 +523,9 @@ _testPriority:
     call getWord
     jmp _validatePriority
 
+_invalidPriority:
+    mov edx, offset promptBadDataMsg
+    call WriteString
 _promptPriority:
     mov edx, offset promptPriorMsg
     call WriteString
@@ -531,12 +538,12 @@ _promptPriority:
 _validatePriority: ; first byte 0-7, second byte null
     mov ah, wordBuffer[1]
     cmp ah, 0
-    je _promptPriority
+    je _invalidPriority
     mov al, wordBuffer
     cmp al, '0'
-    jl _promptPriority
+    jl _invalidPriority
     cmp al, '7'
-    jg _promptPriority
+    jg _invalidPriority
 
     sub al, '0'
     mov priority, al
@@ -550,6 +557,9 @@ _testRuntime:
     call getWord
     jmp _validateRuntime
 
+_invalidRuntime:
+    mov edx, offset promptBadDataMsg
+    call WriteString
 _promptRuntime:
     mov edx, offset promptRuntMsg
     call WriteString
@@ -563,10 +573,10 @@ _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 6
     mov edx, offset wordBuffer
     call ParseInteger32
     jc _promptRuntime
-    cmp eax, 0
-    jle _promptRuntime
+    cmp eax, 1
+    jle _invalidRuntime
     cmp eax, 65536
-    jge _promptRuntime
+    jge _invalidRuntime
     mov runtime, ax
     jmp _createRecord ; got all data, make record
     
