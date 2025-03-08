@@ -56,8 +56,8 @@ numjobs equ 10
 
 ; jobs, pointer
 jobs byte numjobs * jobsize dup(0)
-endjobs dword endjobs ; memory location that stores its own location
-jobptr dword jobs
+endjobs dword offset endjobs ; memory location that stores its own location
+jobptr dword offset jobs
 
 ; messages
 cr equ 13
@@ -245,7 +245,7 @@ resetInput endp
 
 
 skipSpace proc
-    push eax ; save registers
+    push eax
     push esi
 
     ; loop through input buffer, start at index
@@ -263,7 +263,7 @@ _loop:
 _ret:
     mov index, esi ; update index
     pop esi
-    pop eax ; restore registers
+    pop eax
     ret
 skipSpace endp
 
@@ -289,7 +289,7 @@ isSpace endp
 
 
 getWord proc
-    push esi ; save registers
+    push esi
     push edi
 
     ; empty word buffer
@@ -321,7 +321,7 @@ _updateIndex:
     mov index, esi
 _ret:
     pop edi
-    pop esi ; restore registers
+    pop esi
     ret
 getWord endp
 
@@ -342,36 +342,41 @@ toLower endp
 
 
 
-; takes: nameBuffer
+; takes: nameBuffer offset in esi
 ; desc: if job exists, move jobptr there; otherwise, do nothing
 ;       carry flag set: found
 ;       carry flag unset: not found
 findJob proc
-    push eax ; save registers
-    push esi
+    push eax
     push ebx
+    push ecx
+    push edi
 
-    clc ; only set carry flag if job found
+    clc ; clear carry
 
-    mov eax, offset nameBuffer ; store nameBuffer offset in eax
-    mov ebx, offset jobptr ; store starting job pointer location
-    jmp _loop
-_updateJob:
+    mov ebx, jobptr ; keep original job to check
+    mov edx, jnameBuffer ; to access name field
+    mov eax, jobptr ; initialize current job pointer
+    jmp _while
+_incJob:
     call nextJob
-    cmp jobptr, ebx
-    je _ret ; if job pointer becomes where it started, not found
-_loop:
-    mov esi, jobptr[eax] ; store beginning of job nameBuffer
-    mov edi, offset nameBuffer ; store beginning of acquired nameBuffer (will not be empty)
-    mov ecx, sizeof nameBuffer
-    repe cmpsb
-    jne _updateJob
-    stc ; nameBuffer is equal; match found, jobptr is pointing to it
+    mov eax, jobptr ; store current job
+    cmp eax, ebx
+    je _ret ; if the current job is the original, job not found
+_while:
+    mov edi, eax + edx ; store offset of current job name
+
+    mov ecx, sizeof nameBuffer ; max number of characters to read
+    repe cmpsb ; compare input with current job name
+    jne _incJob ; if they are different, move on to next loop
+
+    stc ; if the names do match, job was found
 
 _ret:
+    pop edi
+    pop ecx
     pop ebx
-    pop esi
-    pop eax ; restore registers
+    pop eax
     ret
 findJob endp
 
@@ -380,9 +385,11 @@ findJob endp
 
 ; increments the job pointer, wrapping it around to the start
 nextJob proc
-    push eax ; save registers
+    push eax
+    push ebx
 
-    add jobptr, jobsize ; go to next record
+    mov ebx, jobsize
+    add jobptr, ebx ; go to next record
 
     mov eax, offset endjobs
     cmp jobptr, eax
@@ -394,7 +401,8 @@ _begin:
     mov jobptr, eax
     
 _ret:
-    push eax ; restore registers
+    pop ebx
+    pop eax
     ret
 nextJob endp
 
@@ -458,7 +466,7 @@ changeCommand endp
 ; takes: nameBuffer, priority, runtime
 ; desc: creates a new job
 loadCommand proc
-    push eax ; save registers
+    push eax
     push esi
     push edi
     push ecx
@@ -624,7 +632,7 @@ loadCommand endp
 ; carry flag set: one available space, jobptr points to it
 ; carry flag unset: no spaces available
 spaceAvailable proc
-    push eax ; save registers
+    push eax
     push esi
     push ebx
 
@@ -647,7 +655,7 @@ _loop:
 _ret:
     pop ebx
     pop esi
-    pop eax ; restore registers
+    pop eax
     ret
 spaceAvailable endp
 
