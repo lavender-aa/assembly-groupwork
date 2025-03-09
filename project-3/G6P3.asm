@@ -73,6 +73,15 @@ promptRuntMsg byte "Enter a runtime for the job (1-65536): ",0
 promptBadDataMsg byte "Invalid data entered.",cr,lf,0
 stackFullMsg byte "There is no room available for a new job.",cr,lf,0
 
+; record printing strings
+rpNameMsg byte "Record name: ",0
+rpPrior byte "Priority: ",0
+rpStatus byte "Status: ",0
+rpStatRun byte "running",0
+rpStatHold byte "holding",0
+rpRun byte "Runtime: ",0
+rpLoad byte "Load time: ",0
+
 ; help message
 helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
         byte "Jobs can be run by the system, and have 5 elmeents:",cr,lf
@@ -418,7 +427,96 @@ nextJob endp
 ; takes: nothing
 ; desc: shows all non-available records
 showCommand proc
+    push eax
+    push ebx
+    push ecx
+    push edi
+    push esi
+
+    mov ebx, jobptr ; origin
+    jmp _while
+
+_incJob:
+    call nextJob
+    cmp jobptr, ebx
+    je _ret
+_while:
+    mov eax, jobptr ; current job
+    mov edx, eax
+    add edx, jstatus ; get pointer to status in edx
+    movzx ecx, byte ptr [edx]
+
+    cmp ecx, 0 ; test if status is available
+    je _incJob ; if so, go to next job
+
+    ; write name
+    mov edi, eax
+    add edi, jnameBuffer
+    mov esi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb ; copy 8 bytes from record into name buffer
     
+    mov edx, offset rpNameMsg
+    call WriteString
+    mov edx, offset nameBuffer
+    call WriteString
+    call Crlf
+
+    ; write priority
+    mov edx, offset rpPrior
+    call WriteString
+    mov edx, eax
+    add edx, jPriority
+    push eax
+    movzx eax, byte ptr [edx]
+    call WriteInt
+    call Crlf
+    pop eax
+
+    ; write status
+    mov edx, offset rpStatus
+    call WriteString
+    mov edx, eax
+    add edx, jPriority
+    mov cl, byte ptr [edx]
+    cmp cl, jrun
+    jne _hold
+    mov edx, offset rpStatRun
+    jmp _printStat
+_hold:
+    mov edx, offset rpStatHold
+_printStat:
+    call WriteString
+    call Crlf
+
+    ; write runtime
+    mov edx, offset rpRun
+    call WriteString
+    mov edx, eax
+    add edx, jruntime
+    push eax
+    movzx eax, word ptr [edx]
+    call WriteInt
+    call Crlf
+    pop eax
+
+    ; write loadtime
+    mov edx, offset rpLoad
+    call WriteString
+    mov edx, eax
+    add edx, jloadtime
+    push eax
+    movzx eax, word ptr [edx]
+    call WriteInt
+    call Crlf
+    pop eax
+    
+_ret:
+    pop esi
+    pop edi
+    pop ecx
+    pop ebx
+    pop eax
     ret
 showCommand endp
 
