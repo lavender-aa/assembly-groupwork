@@ -688,7 +688,7 @@ _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 6
     mov ecx, sizeof wordBuffer
     call ParseInteger32
     jc _promptRuntime
-    cmp eax, 1
+    cmp eax, 0
     jle _invalidRuntime
     cmp eax, 65536
     jge _invalidRuntime
