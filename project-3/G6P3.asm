@@ -712,9 +712,10 @@ _createRecord: ; jobptr already pointing at available slot
 
     ; set nameBuffer
     mov esi, offset nameBuffer
-    mov edi, jnameBuffer[eax]
+    mov edi, eax
+    add edi, jnameBuffer
     mov ecx, sizeof nameBuffer
-    rep movsb
+    rep movsb ; error
 
     ; set priority
     mov dl, priority
