@@ -706,45 +706,38 @@ _clearnameBuffer:
     jmp _ret
 
 _createRecord: ; jobptr already pointing at available slot
-    ; set variables
-    mov ax, system_time
-    mov loadtime, ax ; store load time
-    mov al, jhold
-    mov status, al ; start in hold mode
+
+    ; store job offset in eax
+    mov eax, jobptr
 
     ; set nameBuffer
     mov esi, offset nameBuffer
-    mov eax, jnameBuffer
-    mov edi, jobptr[eax]
+    mov edi, jnameBuffer[eax]
     mov ecx, sizeof nameBuffer
     rep movsb
 
     ; set priority
     mov dl, priority
-    mov eax, jpriority
-    mov byte ptr jobptr[eax], dl
+    mov byte ptr jpriority[eax], dl
 
     ; set status
-    mov dl, status
-    mov eax, jstatus
-    mov byte ptr jobptr[eax], dl
+    mov dl, jhold
+    mov byte ptr jstatus[eax], dl
 
     ; set runtime
     mov dx, runtime
-    mov eax, jruntime
-    mov word ptr jobptr[eax], dx
+    mov word ptr jruntime[eax], dx
 
     ; set loadtime
     mov dx, system_time
-    mov eax, jloadtime
-    mov word ptr jobptr[eax], dx
+    mov word ptr jloadtime[eax], dx
 
 _ret:
     pop edx
     pop ecx
     pop edi
     pop esi
-    pop eax ; restore registers
+    pop eax
     ret
 loadCommand endp
 
