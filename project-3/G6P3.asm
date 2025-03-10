@@ -28,7 +28,7 @@ changeTarget byte 'change',0
 loadTarget   byte 'load',0
 
 ; record data
-nameBuffer byte 8 dup(0)
+nameBuffer byte 9 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
@@ -357,7 +357,7 @@ toLower endp
 
 
 
-; takes: name offset in esi
+; takes: name from nameBuffer
 ; desc: if job exists, move jobptr there; otherwise, do nothing
 ;       carry flag set: found
 ;       carry flag unset: not found
@@ -442,18 +442,16 @@ _incJob:
     je _ret
 _while:
     mov eax, jobptr ; current job
-    mov edx, eax
-    add edx, jstatus ; get pointer to status in edx
-    movzx ecx, byte ptr [edx]
+    movzx ecx, byte ptr jstatus[eax] ; get status of current job
 
     cmp ecx, 0 ; test if status is available
     je _incJob ; if so, go to next job
 
-    ; write name
-    mov edi, eax
-    add edi, jnameBuffer
-    mov esi, offset nameBuffer
-    mov ecx, sizeof nameBuffer
+    ; write name: move current name to nameBuffer, write
+    mov esi, eax
+    add esi, jnameBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer - 1
     rep movsb ; copy 8 bytes from record into name buffer
     
     mov edx, offset rpNameMsg
@@ -505,11 +503,16 @@ _printStat:
     call WriteString
     mov edx, eax
     add edx, jloadtime
+
     push eax
     movzx eax, word ptr [edx]
     call WriteInt
     call Crlf
     pop eax
+
+    call Crlf ; extra space for next record
+
+    jmp _incJob ; go to next job
     
 _ret:
     pop esi
@@ -611,7 +614,7 @@ _validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt
 
     mov esi, offset wordBuffer ; copy wordbuffer to nameBuffer for finding
     mov edi, offset nameBuffer
-    mov ecx, sizeof nameBuffer
+    mov ecx, sizeof nameBuffer - 1
     rep movsb
 
     ; validate: nameBuffer is unique
@@ -710,12 +713,12 @@ _createRecord: ; jobptr already pointing at available slot
     ; store job offset in eax
     mov eax, jobptr
 
-    ; set nameBuffer
+    ; set name
     mov esi, offset nameBuffer
     mov edi, eax
     add edi, jnameBuffer
-    mov ecx, sizeof nameBuffer
-    rep movsb ; error
+    mov ecx, sizeof nameBuffer - 1
+    rep movsb
 
     ; set priority
     mov dl, priority
