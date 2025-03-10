@@ -378,6 +378,7 @@ _incJob:
     cmp eax, ebx
     je _ret ; if the current job is the original, job not found
 _while:
+    mov esi, offset nameBuffer
     mov edi, eax
     add edi, jnameBuffer ; store offset of current job name
 
