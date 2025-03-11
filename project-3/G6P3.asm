@@ -571,7 +571,7 @@ changeCommand endp
 
 
 
-; takes: nameBuffer, priority, runtime
+; takes: name, priority, runtime
 ; desc: creates a new job
 loadCommand proc
     push eax
@@ -583,23 +583,39 @@ loadCommand proc
     ; if there is no space: cancel
     ; else: test input for next data
     call spaceAvailable
-    jc _testnameBuffer
+    jc _testName
     mov edx, offset stackFullMsg
     call WriteString
     jmp _cancel
 
-_testnameBuffer: ; test input buffer; get nameBuffer if there is more, prompt/get if not
+_testName: ; test input buffer; get Name if there is more, prompt/get if not
     call skipSpace
     mov eax, index
     cmp eax, sizeof inputBuffer
-    jge _promptnameBuffer
+    jge _promptName
     call getWord
-    jmp _validatenameBuffer
+    jmp _testPriority
+
+_testPriority:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptPriority
+    call getWord
+    jmp _validatePriority
+
+_testRuntime:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptRuntime
+    call getWord
+    jmp _validateName
 
 _invalidName:
     mov edx, offset promptBadDataMsg
     call WriteString
-_promptnameBuffer: ; prompt for and read name
+_promptName: ; prompt for and read name
     call Crlf
     mov edx, offset promptNameMsg
     call WriteString
@@ -608,7 +624,7 @@ _promptnameBuffer: ; prompt for and read name
     mov ecx, sizeof wordBuffer
     call ReadString
 
-_validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt; else, continue
+_validateName: ; if Name is empty, cancel; else if invalid, reprompt; else, continue
     cmp wordBuffer, 0
     je _cancel
 
@@ -620,18 +636,9 @@ _validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt
     cld
     rep movsb
 
-    ; validate: nameBuffer is unique
+    ; validate: Name is unique
     call findJob
-    jc _invalidName ; job with same nameBuffer found; try again
-
-_testPriority:
-    call skipSpace
-    mov eax, index
-    cmp eax, sizeof inputBuffer
-    jge _promptPriority
-    ; past: take nameBuffer from buffer
-    call getWord
-    jmp _validatePriority
+    jc _invalidName ; job with same Name found; try again
 
 _invalidPriority:
     mov edx, offset promptBadDataMsg
@@ -660,15 +667,6 @@ _validatePriority: ; first byte 0-7, second byte null
     sub al, '0'
     mov priority, al
 
-_testRuntime:
-    call skipSpace
-    mov eax, index
-    cmp eax, sizeof inputBuffer
-    jge _promptRuntime
-    ; past: take nameBuffer from buffer
-    call getWord
-    jmp _validateRuntime
-
 _invalidRuntime:
     mov edx, offset promptBadDataMsg
     call WriteString
@@ -696,17 +694,17 @@ _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 6
     jmp _createRecord ; got all data, make record
     
 
-_cancel: ; print message, clear npriority, runtime, nameBuffer
+_cancel: ; print message, clear npriority, runtime, Name
     mov edx, offset cancelMsg
     call WriteString
     mov priority, 0
     mov runtime, 0
     mov eax, 0
-_clearnameBuffer:
+_clearName:
     mov nameBuffer[eax], 0
     inc eax
     cmp eax, sizeof nameBuffer
-    jl _clearnameBuffer
+    jl _clearName
     jmp _ret
 
 _createRecord: ; jobptr already pointing at available slot
