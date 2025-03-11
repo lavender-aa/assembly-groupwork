@@ -600,21 +600,24 @@ _invalidName:
     mov edx, offset promptBadDataMsg
     call WriteString
 _promptnameBuffer: ; prompt for and read name
+    call Crlf
     mov edx, offset promptNameMsg
     call WriteString
 
     mov edx, offset wordBuffer
     mov ecx, sizeof wordBuffer
     call ReadString
-    call Crlf
 
 _validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt; else, continue
     cmp wordBuffer, 0
     je _cancel
 
-    mov esi, offset wordBuffer ; copy wordbuffer to nameBuffer for finding
+    ; store gotten word into name buffer
+    ; (used to check/set)
+    mov esi, offset wordBuffer
     mov edi, offset nameBuffer
     mov ecx, sizeof nameBuffer
+    cld
     rep movsb
 
     ; validate: nameBuffer is unique
@@ -640,7 +643,6 @@ _promptPriority:
     mov edx, offset wordBuffer
     mov ecx, sizeof wordBuffer
     call ReadString
-    call Crlf
 
 _validatePriority: ; first byte 0-7, second byte null
     cmp wordBuffer, 0
@@ -677,7 +679,6 @@ _promptRuntime:
     mov edx, offset wordBuffer
     mov ecx, sizeof wordBuffer
     call ReadString
-    call Crlf
 
 _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 65536
     cmp wordBuffer, 0
