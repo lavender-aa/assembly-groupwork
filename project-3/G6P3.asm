@@ -29,6 +29,8 @@ loadTarget   byte 'load',0
 
 ; record data
 nameBuffer byte 8 dup(0)
+priorBuffer byte 8 dup(0)
+runtitmeBuffer byte 8 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
@@ -588,69 +590,108 @@ loadCommand proc
     call WriteString
     jmp _cancel
 
-_testName: ; test input buffer; get Name if there is more, prompt/get if not
+    ; for each input: see if it was provided, then start validation
+    mov ebx, 0 ; keep track of number of provided inputs
+
+_testName:
     call skipSpace
     mov eax, index
     cmp eax, sizeof inputBuffer
     jge _promptName
     call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+    inc ebx
+    jmp _testPriority
+
+_testPriority:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptName
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset priorBuffer
+    mov ecx, sizeof priorBuffer
+    rep movsb
+    inc ebx
+    jmp _testRuntime
+
+_testRuntime:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptName
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset runtimeBuffer
+    mov ecx, sizeof runtimeBuffer
+    rep movsb
+    inc ebx
     jmp _validateName
 
 _invalidName:
     mov edx, offset promptBadDataMsg
     call WriteString
 _promptName: ; prompt for and read name
+    cmp ebx, 1
+    jge _validateName
     call Crlf
     mov edx, offset promptNameMsg
     call WriteString
 
-    mov edx, offset wordBuffer
-    mov ecx, sizeof wordBuffer
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
     call ReadString
 
-_validateName: ; if Name is empty, cancel; else if invalid, reprompt; else, continue
-    cmp wordBuffer, 0
-    je _cancel
-
-    ; store gotten word into name buffer
-    ; (used to check/set)
+    call skipSpace
+    call getWord
     mov esi, offset wordBuffer
     mov edi, offset nameBuffer
     mov ecx, sizeof nameBuffer
-    cld
     rep movsb
+
+_validateName: ; if Name is empty, cancel; else if invalid, reprompt; else, continue
+    cmp nameBuffer, 0
+    je _cancel
 
     ; validate: Name is unique
     call findJob
     jc _invalidName ; job with same Name found; try again
-
-_testPriority:
-    call skipSpace
-    mov eax, index
-    cmp eax, sizeof inputBuffer
-    jge _promptPriority
-    call getWord
-    jmp _validatePriority
+    jmp _promptPriority
 
 _invalidPriority:
     mov edx, offset promptBadDataMsg
     call WriteString
 _promptPriority:
+    cmp ebx, 2
+    jge _validatePriority
     mov edx, offset promptPriorMsg
     call WriteString
 
-    mov edx, offset wordBuffer
-    mov ecx, sizeof wordBuffer
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
     call ReadString
 
+    call skipSpace
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset priorBuffer
+    mov ecx, sizeof priorBuffer
+    rep movsb
+
 _validatePriority: ; first byte 0-7, second byte null
-    cmp wordBuffer, 0
+    cmp priorBuffer, 0
     je _cancel
 
-    mov ah, wordBuffer[1]
+    mov ah, priorBuffer[1]
     cmp ah, 0
     jne _invalidPriority
-    mov al, wordBuffer
+    mov al, priorBuffer
     cmp al, '0'
     jl _invalidPriority
     cmp al, '7'
@@ -658,32 +699,35 @@ _validatePriority: ; first byte 0-7, second byte null
 
     sub al, '0'
     mov priority, al
-
-_testRuntime:
-    call skipSpace
-    mov eax, index
-    cmp eax, sizeof inputBuffer
-    jge _promptRuntime
-    call getWord
     jmp _validateRuntime
 
 _invalidRuntime:
     mov edx, offset promptBadDataMsg
     call WriteString
 _promptRuntime:
+    cmp ebx, 3
+    jge _validateRuntime
     mov edx, offset promptRuntMsg
     call WriteString
 
-    mov edx, offset wordBuffer
-    mov ecx, sizeof wordBuffer
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
     call ReadString
 
+    call skipSpace
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset runtimeBuffer
+    mov ecx, sizeof runtimeBuffer
+    rep movsb
+
 _validateRuntime: ; parse integer succeeds, value is not 0, value is less than 65536
-    cmp wordBuffer, 0
+    cmp runtimeBuffer, 0
     je _cancel
 
-    mov edx, offset wordBuffer
-    mov ecx, sizeof wordBuffer
+    mov edx, offset runtimeBuffer
+    mov ecx, sizeof runtimeBuffer
     call ParseInteger32
     jc _promptRuntime
     cmp eax, 0
@@ -700,12 +744,6 @@ _cancel: ; print message, clear npriority, runtime, Name
     mov priority, 0
     mov runtime, 0
     mov eax, 0
-_clearName:
-    mov nameBuffer[eax], 0
-    inc eax
-    cmp eax, sizeof nameBuffer
-    jl _clearName
-    jmp _ret
 
 _createRecord: ; jobptr already pointing at available slot
 
