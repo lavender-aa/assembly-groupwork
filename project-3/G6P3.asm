@@ -594,22 +594,6 @@ _testName: ; test input buffer; get Name if there is more, prompt/get if not
     cmp eax, sizeof inputBuffer
     jge _promptName
     call getWord
-    jmp _testPriority
-
-_testPriority:
-    call skipSpace
-    mov eax, index
-    cmp eax, sizeof inputBuffer
-    jge _promptPriority
-    call getWord
-    jmp _validatePriority
-
-_testRuntime:
-    call skipSpace
-    mov eax, index
-    cmp eax, sizeof inputBuffer
-    jge _promptRuntime
-    call getWord
     jmp _validateName
 
 _invalidName:
@@ -640,6 +624,14 @@ _validateName: ; if Name is empty, cancel; else if invalid, reprompt; else, cont
     call findJob
     jc _invalidName ; job with same Name found; try again
 
+_testPriority:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptPriority
+    call getWord
+    jmp _validatePriority
+
 _invalidPriority:
     mov edx, offset promptBadDataMsg
     call WriteString
@@ -666,6 +658,14 @@ _validatePriority: ; first byte 0-7, second byte null
 
     sub al, '0'
     mov priority, al
+
+_testRuntime:
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptRuntime
+    call getWord
+    jmp _validateRuntime
 
 _invalidRuntime:
     mov edx, offset promptBadDataMsg
