@@ -13,7 +13,7 @@ INCLUDE Irvine32.inc
 
 ; command line input processing
 inputBuffer byte 51 dup(0)
-wordBuffer byte 9 dup(0)
+wordBuffer byte 8 dup(0)
 index dword 0
 
 ; command targets
@@ -28,7 +28,7 @@ changeTarget byte 'change',0
 loadTarget   byte 'load',0
 
 ; record data
-nameBuffer byte 9 dup(0)
+nameBuffer byte 8 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
@@ -362,7 +362,6 @@ toLower endp
 ;       carry flag set: found
 ;       carry flag unset: not found
 findJob proc
-    push eax
     push ebx
     push ecx
     push edi
@@ -376,21 +375,13 @@ _incJob:
     cmp jobptr, ebx
     je _ret ; if the current job is the original, job not found
 _while:
-    mov eax, jobptr ; pointer to current job
-    mov edi, eax
-    add edi, jnameBuffer ; store offset of current job name
+    ; move offsets of current job name and job name to check
+    ; to compare
+    mov esi, jobptr
+    add esi, jnameBuffer
+    mov edi, offset nameBuffer
 
-    ; copy current word to wordBuffer for comparison
-    mov esi, edi
-    mov edi, offset wordBuffer
-    mov ecx, sizeof nameBuffer - 1
-    rep movsb
-
-    ; set edi and esi to buffers
-    mov esi, offset nameBuffer
-    mov edi, offset wordBuffer
-
-    mov ecx, sizeof nameBuffer - 1 ; max number of characters to read
+    mov ecx, sizeof nameBuffer ; max number of characters to read
     cld
     repe cmpsb ; compare input with current job name
     jne _incJob ; if they are different, move on to next loop
@@ -403,7 +394,6 @@ _ret:
     pop edi
     pop ecx
     pop ebx
-    pop eax
     ret
 findJob endp
 
@@ -463,7 +453,7 @@ _while:
     mov esi, eax
     add esi, jnameBuffer
     mov edi, offset nameBuffer
-    mov ecx, sizeof nameBuffer - 1
+    mov ecx, sizeof nameBuffer
     rep movsb ; copy 8 bytes from record into name buffer
     
     mov edx, offset rpNameMsg
@@ -626,7 +616,7 @@ _validatenameBuffer: ; if nameBuffer is empty, cancel; else if invalid, reprompt
 
     mov esi, offset wordBuffer ; copy wordbuffer to nameBuffer for finding
     mov edi, offset nameBuffer
-    mov ecx, sizeof nameBuffer - 1
+    mov ecx, sizeof nameBuffer
     rep movsb
 
     ; validate: nameBuffer is unique
@@ -729,7 +719,7 @@ _createRecord: ; jobptr already pointing at available slot
     mov esi, offset nameBuffer
     mov edi, eax
     add edi, jnameBuffer
-    mov ecx, sizeof nameBuffer - 1
+    mov ecx, sizeof nameBuffer
     rep movsb
 
     ; set priority
