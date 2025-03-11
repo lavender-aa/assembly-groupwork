@@ -141,8 +141,6 @@ commandHandler proc
     mov ecx, sizeof inputBuffer
     call ReadString
 
-    call Crlf ; spacing
-
     call skipSpace ; move input to first word
     call getWord ; get word into buffer
 
@@ -449,6 +447,8 @@ _while:
     cmp ecx, 0 ; test if status is available
     je _incJob ; if so, go to next job
 
+    call Crlf ; space for next job
+
     ; write name: move current name to nameBuffer, write
     mov esi, eax
     add esi, jnameBuffer
@@ -511,8 +511,6 @@ _printStat:
     call WriteInt
     call Crlf
     pop eax
-
-    call Crlf ; extra space for next record
 
     jmp _incJob ; go to next job
     
