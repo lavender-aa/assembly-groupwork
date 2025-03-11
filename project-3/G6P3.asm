@@ -13,7 +13,7 @@ INCLUDE Irvine32.inc
 
 ; command line input processing
 inputBuffer byte 51 dup(0)
-wordBuffer byte 11 dup(0)
+wordBuffer byte 9 dup(0)
 index dword 0
 
 ; command targets
@@ -66,7 +66,7 @@ tab equ 9
 quitMsg byte "Exiting program.",cr,lf,0
 commandPromptMsg byte cr,lf,"Enter a command: ",0
 invalidCommandMsg byte "Invalid command: ",0
-cancelMsg byte "Cancelling command.",0
+cancelMsg byte "Cancelling command.",cr,lf,0
 promptnameMsg byte "Enter a name for the job: ",0
 promptPriorMsg byte "Enter a priority for the job (0-7): ",0
 promptRuntMsg byte "Enter a runtime for the job (1-65536): ",0
@@ -370,21 +370,32 @@ findJob proc
     clc ; clear carry
 
     mov ebx, jobptr ; keep original job to check
-    mov eax, jobptr ; initialize current job pointer
     jmp _while
 _incJob:
     call nextJob
-    mov eax, jobptr ; store current job
-    cmp eax, ebx
+    cmp jobptr, ebx
     je _ret ; if the current job is the original, job not found
 _while:
-    mov esi, offset nameBuffer
+    mov eax, jobptr ; pointer to current job
     mov edi, eax
     add edi, jnameBuffer ; store offset of current job name
 
-    mov ecx, 8 ; max number of characters to read
+    ; copy current word to wordBuffer for comparison
+    mov esi, edi
+    mov edi, offset wordBuffer
+    mov ecx, sizeof nameBuffer - 1
+    rep movsb
+
+    ; set edi and esi to buffers
+    mov esi, offset nameBuffer
+    mov edi, offset wordBuffer
+
+    mov ecx, sizeof nameBuffer - 1 ; max number of characters to read
+    cld
     repe cmpsb ; compare input with current job name
     jne _incJob ; if they are different, move on to next loop
+
+    ; BUG: even when wordBuffer and nameBuffer have same contents, cmpsb fails
 
     stc ; if the names do match, job was found
 
