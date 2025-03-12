@@ -81,6 +81,9 @@ runCommandAlrRun byte "Job is already in the RUN mode.",cr,lf,0
 holdCommandMsg byte "Enter job to change to HOLD mode: ",0
 holdCommandSuccess byte "Job successfully changed to HOLD mode.",cr,lf,0
 holdCommandAlrHold byte "Job is already in the HOLD mode.",cr,lf,0
+killCommandMsg byte "Enter job to kill: ",0
+killCommandSuccess byte "Job killed successfully.",cr,lf,0
+killCommandNotHold byte "Cannot kill job that is in RUN mode.",cr,lf,0
 
 ; record printing strings
 rpNameMsg byte "Record name: ",0
@@ -388,6 +391,11 @@ _while:
     add esi, jnameBuffer
     mov edi, offset nameBuffer
 
+    ; if status is available, skip
+    movzx ecx, byte ptr jstatus[esi]
+    cmp ecx, 0
+    je _incJob
+
     mov ecx, sizeof nameBuffer ; max number of characters to read
     cld
     repe cmpsb ; compare input with current job name
@@ -684,6 +692,68 @@ holdCommand endp
 ; takes: nameBuffer
 ; desc: removes a job if it is in hold mode
 killCommand proc
+    push eax
+    push ecx
+    push edx
+
+    ; get job to kill
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jl _getName
+
+_promptName:
+    ; name was not provided; prompt
+    mov edx, offset killCommandMsg
+    call WriteString
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
+    call ReadString
+    call skipSpace
+
+_getName:
+    call getWord
+    cmp wordBuffer, 0
+    je _cancel
+    mov esi, offset wordBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+
+_findName:
+    call findJob
+    jnc _notFound
+    mov eax, jobptr
+    mov esi, jhold
+    mov cl, byte ptr jstatus[eax]
+    cmp cl, jhold
+    jne _notHold
+
+    mov cl, javailable
+    mov byte ptr jstatus[eax], cl
+    mov edx, offset killCommandSuccess
+    call WriteString
+    jmp _ret
+
+_notFound:
+    mov edx, offset runCommandNotFound
+    call WriteString
+    jmp _ret
+
+_notHold:
+    mov edx, offset killCommandNotHold
+    call WriteString
+    jmp _ret
+
+_cancel:
+    mov edx, offset cancelMsg
+    call WriteString
+
+_ret:
+    pop edx
+    pop ecx
+    pop eax
     ret
 killCommand endp
 
