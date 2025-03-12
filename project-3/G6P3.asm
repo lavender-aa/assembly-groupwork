@@ -74,6 +74,13 @@ promptPriorMsg byte "Enter a priority for the job (0-7): ",0
 promptRuntMsg byte "Enter a runtime for the job (1-65536): ",0
 promptBadDataMsg byte "Invalid data entered.",cr,lf,0
 stackFullMsg byte "There is no room available for a new job.",cr,lf,0
+runCommandMsg byte "Enter job to change to RUN mode: ",0
+runCommandNotFound byte "Job not found.",cr,lf,0
+runCommandSuccess byte "Job successfully changed to RUN mode.",cr,lf,0
+runCommandAlrRun byte "Job is already in the RUN mode.",cr,lf,0
+holdCommandMsg byte "Enter job to change to HOLD mode: ",0
+holdCommandSuccess byte "Job successfully changed to HOLD mode.",cr,lf,0
+holdCommandAlrHold byte "Job is already in the HOLD mode.",cr,lf,0
 
 ; record printing strings
 rpNameMsg byte "Record name: ",0
@@ -531,6 +538,70 @@ showCommand endp
 ; takes: nameBuffer
 ; desc: changes a job from hold to run
 runCommand proc
+    push eax
+    push ecx
+    push edx
+    push esi
+    push edi
+
+    ; get command to run
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jl _getName
+
+_promptName:
+    ; name was not provided; prompt
+    mov edx, offset runCommandMsg
+    call WriteString
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
+    call ReadString
+    call skipSpace
+
+_getName:
+    call getWord
+    cmp wordBuffer, 0
+    je _cancel
+    mov esi, offset wordBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+
+_findJob:
+    call findJob
+    jnc _notFound
+    mov eax, jobptr
+    mov esi, jrun
+    movzx ecx, byte ptr jstatus[eax]
+    cmp ecx, esi
+    jne _setRun
+    mov edx, offset runCommandAlrRun
+    call WriteString
+    jmp _ret
+
+_setRun:
+    mov jstatus[eax], esi ; change status byte of record to run
+    mov edx, offset runCommandSuccess
+    call WriteString
+    jmp _ret
+
+_notFound:
+    mov edx, offset runCommandNotFound
+    call WriteString
+    jmp _ret
+
+_cancel:
+    mov edx, offset cancelMsg
+    call WriteString
+
+_ret:
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop eax
     ret
 runCommand endp
 
@@ -540,6 +611,70 @@ runCommand endp
 ; takes: nameBuffer
 ; desc: changes a job from run to hold
 holdCommand proc
+    push eax
+    push ecx
+    push edx
+    push esi
+    push edi
+
+    ; get command to run
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jl _getName
+
+_promptName:
+    ; name was not provided; prompt
+    mov edx, offset holdCommandMsg
+    call WriteString
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
+    call ReadString
+    call skipSpace
+
+_getName:
+    call getWord
+    cmp wordBuffer, 0
+    je _cancel
+    mov esi, offset wordBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+
+_findJob:
+    call findJob
+    jnc _notFound
+    mov eax, jobptr
+    mov esi, jhold
+    movzx ecx, byte ptr jstatus[eax]
+    cmp ecx, esi
+    jne _setHold
+    mov edx, offset holdCommandAlrHold
+    call WriteString
+    jmp _ret
+
+_setHold:
+    mov jstatus[eax], esi ; change status byte of record to run
+    mov edx, offset holdCommandSuccess
+    call WriteString 
+    jmp _ret
+
+_notFound:
+    mov edx, offset runCommandNotFound
+    call WriteString
+    jmp _ret
+
+_cancel:
+    mov edx, offset cancelMsg
+    call WriteString
+
+_ret:
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop eax
     ret
 holdCommand endp
 
