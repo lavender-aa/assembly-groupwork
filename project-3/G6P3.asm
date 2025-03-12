@@ -100,7 +100,7 @@ rpRun byte "Runtime: ",0
 rpLoad byte "Load time: ",0
 
 ; help message
-helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
+help1   byte "This program is a simple simulation of an operating system.",cr,lf
         byte "Jobs can be run by the system, and have 5 elmeents:",cr,lf
         byte tab,"name: a unique 8-character name for the job.",cr,lf
         byte tab,"prority: a number 0-7 (highest-lowest) for which jobs should be run first.",cr,lf
@@ -115,17 +115,18 @@ helpMsg byte "This program is a simple simulation of an operating system.",cr,lf
         byte "and the items in (parenthesis) are optional and have default values.",cr,lf
         byte "If any prompted-for field is left empty, the command will be cancelled.",cr,lf,cr,lf
         byte "Command descriptions have this form:",cr,lf
-        byte "Command name:",cr,lf,tab,"'Syntax, options'",cr,lf,tab,"Description",cr,lf,cr,lf
-        byte "Commands:",cr,lf,"---------",cr,lf,cr,lf
-        byte "Quit:",cr,lf,tab,"'quit'",cr,lf,tab,"Quits the program.",cr,lf,cr,lf
-        byte "Help:",cr,lf,tab,"'help'",cr,lf,tab,"Displays this message.",cr,lf,cr,lf
-        byte "Show:",cr,lf,tab,"'show'",cr,lf,tab,"Displays all jobs.",cr,lf,cr,lf
-        byte "Run:",cr,lf,tab,"'run [name]'",cr,lf,tab,"Changes the status of a job from 'hold' to 'run'.",cr,lf,cr,lf
-        byte "Hold:",cr,lf,tab,"'hold [name]'",cr,lf,tab,"Changes the status of a job from 'run' to 'hold'.",cr,lf,cr,lf
-        byte "Kill:",cr,lf,tab,"'kill [name]'",cr,lf,tab,"Removes a job whose status is 'hold'.",cr,lf,cr,lf
-        byte "Step:",cr,lf,tab,"'step (num_steps)'",cr,lf,tab,"Processes a positive integer number of clock cycles.",cr,lf,cr,lf
-        byte "Change:",cr,lf,tab,"'change [name [new_priority]]'",cr,lf,tab,"Changes a job's priority.'",cr,lf,cr,lf
-        byte "Load:",cr,lf,tab,"'load [name [priority [runtime]]]'",cr,lf,tab,"Creates a new job if there is space.",cr,lf,0
+        byte "Name:",tab,"'Syntax, options'",cr,lf,tab,"Description",cr,lf,cr,lf,0
+        
+help2  byte "Commands:",cr,lf,"---------",cr,lf,cr,lf
+        byte "Quit:",tab,"'quit'",cr,lf,tab,"Quits the program.",cr,lf,cr,lf
+        byte "Help:",tab,"'help'",cr,lf,tab,"Displays this message.",cr,lf,cr,lf
+        byte "Show:",tab,"'show'",cr,lf,tab,"Displays all jobs.",cr,lf,cr,lf
+        byte "Run:",tab,"'run [name]'",cr,lf,tab,"Changes the status of a job from 'hold' to 'run'.",cr,lf,cr,lf
+        byte "Hold:",tab,"'hold [name]'",cr,lf,tab,"Changes the status of a job from 'run' to 'hold'.",cr,lf,cr,lf
+        byte "Kill:",tab,"'kill [name]'",cr,lf,tab,"Removes a job whose status is 'hold'.",cr,lf,cr,lf
+        byte "Step:",tab,"'step (num_steps)'",cr,lf,tab,"Processes a positive integer number of clock cycles (defaults to 1).",cr,lf,cr,lf
+        byte "Change:",tab,"'change [name [new_priority]]'",cr,lf,tab,"Changes a job's priority.'",cr,lf,cr,lf
+        byte "Load:",tab,"'load [name [priority [runtime]]]'",cr,lf,tab,"Creates a new job if there is space.",cr,lf,0
 
 ; debug
 debug byte 'debug',0
@@ -177,8 +178,15 @@ _help:
     mov ecx, sizeof helpTarget
     repe cmpsb
     jne _show
-    mov edx, offset helpMsg
+    call ClrScr
+    mov edx, offset help1
     call WriteString
+    call WaitMsg
+    call ClrScr
+    mov edx, offset help2
+    call WriteString
+    call WaitMsg
+    call ClrScr
     jmp _continue
 _show:
     mov esi, offset wordBuffer
@@ -452,10 +460,12 @@ showCommand proc
     push eax
     push ebx
     push ecx
+    push edx
     push edi
     push esi
 
     mov ebx, jobptr ; origin
+    mov index, 0 ; no regs left; input buffer always cleared before use
     jmp _while
 
 _incJob:
@@ -469,6 +479,15 @@ _while:
     cmp ecx, 0 ; test if status is available
     je _incJob ; if so, go to next job
 
+    ; print 4 jobs per page, wait for input
+    cmp index, 4
+    jl _print
+    call Crlf
+    call WaitMsg
+    call Crlf
+    mov index, 0
+
+_print:
     call Crlf ; space for next job
 
     ; write name: move current name to nameBuffer, write
@@ -534,11 +553,13 @@ _printStat:
     call Crlf
     pop eax
 
+    inc index
     jmp _incJob ; go to next job
     
 _ret:
     pop esi
     pop edi
+    pop edx
     pop ecx
     pop ebx
     pop eax
