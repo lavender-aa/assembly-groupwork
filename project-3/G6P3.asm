@@ -802,6 +802,40 @@ killCommand endp
 ; takes: number or nothing
 ; desc: processes n steps
 stepCommand proc
+    push eax
+    push ebx
+
+    ; get input
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _processStep
+    call getWord
+    call ParseInteger32
+    jc _oneStep
+    mov runtime, system_time
+    add runtime, eax ; store system time to stop at in runtime
+    jmp _processStep
+
+_oneStep:
+    mov edx, offset stepCommandBad
+    call WriteString
+    mov runtime, system_time
+    inc runtime
+_processStep: ; number of steps to take in eax
+    mov ax, runtime
+    cmp ax, system_time
+    jge _ret
+
+    ; loop through each job:
+    ; 
+
+    inc runtime
+    jmp _processStep
+
+_ret:
+    pop ebx
+    pop eax
     ret
 stepCommand endp
 
