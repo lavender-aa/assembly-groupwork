@@ -84,6 +84,11 @@ holdCommandAlrHold byte "Job is already in the HOLD mode.",cr,lf,0
 killCommandMsg byte "Enter job to kill: ",0
 killCommandSuccess byte "Job killed successfully.",cr,lf,0
 killCommandNotHold byte "Cannot kill job that is in RUN mode.",cr,lf,0
+changeCommandMsg byte "Enter job to change priority of: ",0
+changeCommandSuccess byte "Job priority successfully changed.",cr,lf,0
+changeCommandAlr byte "Job already has this priority.",cr,lf,0
+changeCommandBadPrior byte "Invalid priority.",cr,lf,0
+changeCommandPriorMsg byte "Enter a new priority (0-7): ",0
 
 ; record printing strings
 rpNameMsg byte "Record name: ",0
@@ -695,6 +700,8 @@ killCommand proc
     push eax
     push ecx
     push edx
+    push esi
+    push edi
 
     ; get job to kill
     call skipSpace
@@ -760,6 +767,8 @@ _cancel:
     call WriteString
 
 _ret:
+    pop edi
+    pop esi
     pop edx
     pop ecx
     pop eax
@@ -781,6 +790,131 @@ stepCommand endp
 ; takes: nameBuffer, new_priority
 ; desc: changes job priority
 changeCommand proc
+    push eax
+    push ecx
+    push edx
+    push esi
+    push edi
+
+    mov ebx, 0 ; keep track of how many inputs given
+
+    ; test name
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptName
+    inc ebx
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+
+    ; test priority
+    call skipSpace
+    mov eax, index
+    cmp eax, sizeof inputBuffer
+    jge _promptName
+    inc ebx
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset priorBuffer
+    mov ecx, sizeof priorBuffer
+    rep movsb
+    jmp _promptName
+
+_invalidName:
+    mov edx, offset runCommandNotFound
+    call WriteString
+    jmp _getName
+_promptName:
+    cmp ebx, 1
+    jge _validateName
+_getName:
+    mov edx, offset changeCommandMsg
+    call WriteString
+
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
+    call ReadString
+
+    call skipSpace
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+
+_validateName: ; must exist
+    cmp nameBuffer, 0
+    je _cancel
+    call findJob
+    jc _promptPriority
+    jmp _invalidName
+
+_invalidPriority:
+    mov edx, offset changeCommandBadPrior
+    call WriteString
+    jmp _getPriority
+_promptPriority:
+    cmp ebx, 2
+    jge _validatePriority
+_getPriority:
+    mov edx, offset changeCommandPriorMsg
+    call WriteString
+
+    call resetInput
+    mov edx, offset inputBuffer
+    mov ecx, sizeof inputBuffer
+    call ReadString
+
+    call skipSpace
+    call getWord
+    mov esi, offset wordBuffer
+    mov edi, offset priorBuffer
+    mov ecx, sizeof priorBuffer
+    rep movsb
+
+_validatePriority:
+    cmp priorBuffer, 0
+    je _cancel
+    mov edx, offset priorBuffer
+    mov ecx, sizeof priorBuffer
+    call ParseInteger32
+    jc _getPriority
+    cmp eax, 0
+    jl _getPriority
+    cmp eax, 7
+    jg _getPriority
+
+_change:
+    mov ecx, eax ; priority to write (cl for one byte)
+    mov eax, jobptr ; job to write to
+
+    cmp cl, byte ptr jpriority[eax]
+    je _alrPrior
+
+    mov byte ptr jpriority[eax], cl
+    mov edx, offset changeCommandSuccess
+    call WriteString
+    jmp _ret
+
+_alrPrior:
+    mov edx, offset changeCommandAlr
+    call WriteString
+    jmp _ret
+
+_cancel:
+    mov edx, offset cancelMsg
+    call WriteString
+
+_ret:
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
+    pop eax
     ret
 changeCommand endp
 
