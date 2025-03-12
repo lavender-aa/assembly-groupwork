@@ -585,12 +585,14 @@ loadCommand proc
     ; if there is no space: cancel
     ; else: test input for next data
     call spaceAvailable
-    mov eax, jobptr
-    push eax ; store available slot (jobptr messed up by name validation)
-    jc _testName
+    jc _foundSpace
     mov edx, offset stackFullMsg
     call WriteString
     jmp _cancel
+
+_foundSpace:
+    mov eax, jobptr
+    push eax ; store available slot (jobptr messed up by name validation)
 
     ; for each input: see if it was provided, then start validation
 
@@ -752,6 +754,7 @@ _cancel: ; print message, clear npriority, runtime, Name
     mov priority, 0
     mov runtime, 0
     mov eax, 0
+    jmp _ret
 
 _createRecord: ; jobptr already pointing at available slot
 
@@ -794,7 +797,7 @@ loadCommand endp
 
 
 
-; carry flag set: one available space, jobptr points to it
+; carry flag set: at least one available space, jobptr points to it
 ; carry flag unset: no spaces available
 spaceAvailable proc
     push eax
@@ -803,17 +806,15 @@ spaceAvailable proc
 
     clc ; set default to false
 
-    mov eax, jobptr ; store original location
-    mov esi, jstatus
+    mov ebx, jobptr ; store original location
     jmp _loop
 _incJob:
     call nextJob
-    cmp ebx, eax
+    cmp jobptr, ebx
     je _ret
 _loop:
-    mov ebx, jobptr
-    add ebx, esi
-    cmp byte ptr [ebx], 0 ; testing if status is available
+    mov eax, jobptr
+    cmp byte ptr jstatus[eax], 0 ; testing if status is available
     jne _incJob ; if not, move on to next job
     stc ; if so, found available; set carry, return
 
