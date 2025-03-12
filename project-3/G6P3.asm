@@ -730,8 +730,17 @@ _findName:
     cmp cl, jhold
     jne _notHold
 
-    mov cl, javailable
-    mov byte ptr jstatus[eax], cl
+    ; empty all data (0-13 byte offset)
+    mov esi, 0
+_clearRecord:
+    cmp esi, 14
+    jge _done
+    mov byte ptr [eax], 0
+    inc eax
+    inc esi
+    jmp _clearRecord
+_done:
+    ; print success
     mov edx, offset killCommandSuccess
     call WriteString
     jmp _ret
