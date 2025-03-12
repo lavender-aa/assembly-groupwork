@@ -30,7 +30,7 @@ loadTarget   byte 'load',0
 ; record data
 nameBuffer byte 8 dup(0)
 priorBuffer byte 8 dup(0)
-runtitmeBuffer byte 8 dup(0)
+runtimeBuffer byte 8 dup(0)
 priority byte 0
 status byte 0
 runtime word 0
@@ -479,7 +479,7 @@ _while:
     mov edx, offset rpStatus
     call WriteString
     mov edx, eax
-    add edx, jPriority
+    add edx, jstatus
     mov cl, byte ptr [edx]
     cmp cl, jrun
     jne _hold
@@ -585,15 +585,17 @@ loadCommand proc
     ; if there is no space: cancel
     ; else: test input for next data
     call spaceAvailable
+    mov eax, jobptr
+    push eax ; store available slot (jobptr messed up by name validation)
     jc _testName
     mov edx, offset stackFullMsg
     call WriteString
     jmp _cancel
 
     ; for each input: see if it was provided, then start validation
-    mov ebx, 0 ; keep track of number of provided inputs
 
 _testName:
+    mov ebx, 0 ; keep track of number of provided inputs
     call skipSpace
     mov eax, index
     cmp eax, sizeof inputBuffer
@@ -635,9 +637,11 @@ _testRuntime:
 _invalidName:
     mov edx, offset promptBadDataMsg
     call WriteString
+    jmp _getName
 _promptName: ; prompt for and read name
     cmp ebx, 1
     jge _validateName
+_getName:
     call Crlf
     mov edx, offset promptNameMsg
     call WriteString
@@ -666,9 +670,11 @@ _validateName: ; if Name is empty, cancel; else if invalid, reprompt; else, cont
 _invalidPriority:
     mov edx, offset promptBadDataMsg
     call WriteString
+    jmp _getPriority
 _promptPriority:
     cmp ebx, 2
     jge _validatePriority
+_getPriority:
     mov edx, offset promptPriorMsg
     call WriteString
 
@@ -699,14 +705,16 @@ _validatePriority: ; first byte 0-7, second byte null
 
     sub al, '0'
     mov priority, al
-    jmp _validateRuntime
+    jmp _promptRuntime
 
 _invalidRuntime:
     mov edx, offset promptBadDataMsg
     call WriteString
+    jmp _getRuntime
 _promptRuntime:
     cmp ebx, 3
     jge _validateRuntime
+_getRuntime:
     mov edx, offset promptRuntMsg
     call WriteString
 
@@ -747,8 +755,9 @@ _cancel: ; print message, clear npriority, runtime, Name
 
 _createRecord: ; jobptr already pointing at available slot
 
-    ; store job offset in eax
-    mov eax, jobptr
+    ; retrieve available record location
+    ; (was stored via push at beginning of proc)
+    pop eax
 
     ; set name
     mov esi, offset nameBuffer
