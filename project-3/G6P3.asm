@@ -89,6 +89,11 @@ changeCommandSuccess byte "Job priority successfully changed.",cr,lf,0
 changeCommandAlr byte "Job already has this priority.",cr,lf,0
 changeCommandBadPrior byte "Invalid priority.",cr,lf,0
 changeCommandPriorMsg byte "Enter a new priority (0-7): ",0
+stepCommandBadNum byte "Invalid number of steps. Defaulting to 1.",cr,lf,0
+jobDone1 byte "Job '",0
+jobDone2 byte "' has finished running and was removed.",cr,lf,0
+jobNext byte "' processed.",cr,lf,0
+noRunningJobs byte "There are no currently running jobs to process.",cr,lf,0
 
 ; record printing strings
 rpNameMsg byte "Record name: ",0
@@ -616,7 +621,10 @@ _findJob:
     jmp _ret
 
 _setRun:
-    mov jstatus[eax], esi ; change status byte of record to run
+    push ecx
+    mov ecx, esi
+    mov jstatus[eax], cl ; change status byte of record to run
+    pop ecx
     mov edx, offset runCommandSuccess
     call WriteString
     jmp _ret
@@ -804,6 +812,13 @@ killCommand endp
 stepCommand proc
     push eax
     push ebx
+    push ecx
+    push edx
+    push esi
+    push edi
+
+    mov ecx, 0
+    mov ebx, 1
 
     ; get input
     call skipSpace
@@ -811,33 +826,128 @@ stepCommand proc
     cmp eax, sizeof inputBuffer
     jge _processStep
     call getWord
+    mov edx, offset wordBuffer
+    push ecx
+    mov ecx, sizeof wordBuffer
     call ParseInteger32
+    pop ecx
     jc _oneStep
-    mov runtime, system_time
-    add runtime, eax ; store system time to stop at in runtime
+    mov ebx, eax
     jmp _processStep
 
 _oneStep:
-    mov edx, offset stepCommandBad
+    mov edx, offset stepCommandBadNum
     call WriteString
-    mov runtime, system_time
-    inc runtime
-_processStep: ; number of steps to take in eax
-    mov ax, runtime
-    cmp ax, system_time
+    mov ebx, 1
+_processStep:
+    cmp ecx, ebx
     jge _ret
 
-    ; loop through each job:
-    ; 
+    call getJobToRun
+    mov eax, edi ; job to process
 
-    inc runtime
+    cmp eax, 0
+    je _jobNotFound
+
+    ; print "job '[name]" (same for both cases)
+    mov edx, offset jobDone1
+    call WriteString
+    push edi
+    push ecx
+    mov esi, eax
+    mov edi, offset nameBuffer
+    mov ecx, sizeof nameBuffer
+    rep movsb
+    pop ecx
+    pop edi
+    mov edx, offset nameBuffer
+    call WriteString
+
+    ; decrement runtime, check/display messages
+    dec byte ptr jruntime[eax]
+    cmp word ptr jruntime[eax], 0
+    jne _jobNotComplete
+
+    ; job runtime became 0: set status to avail, print message
+    mov byte ptr jstatus[eax], 0
+    mov edx, offset jobDone2
+    call WriteString
+    jmp _next
+
+_jobNotComplete:
+    mov edx, offset jobNext
+    call WriteString
+
+_next:
+    inc ecx
+    inc system_time
     jmp _processStep
 
+_jobNotFound:
+    mov edx, offset noRunningJobs
+    call WriteString
+
 _ret:
+    pop edi
+    pop esi
+    pop edx
+    pop ecx
     pop ebx
     pop eax
     ret
 stepCommand endp
+
+
+
+
+; get next job of highest priority, store in edi
+; if no running jobs are found, edi = 0 and jobptr returns to original location
+getJobToRun proc
+    push eax
+    push ebx
+    push ecx
+    push edx
+
+    mov ecx, jobptr
+    call nextJob
+    mov ebx, jobptr
+    mov eax, jobptr
+    mov dl, 8
+    mov edi, 0
+_do:
+    push ecx
+    movzx ecx, byte ptr jstatus[eax] ; access violation
+    cmp ecx, jrun
+    pop ecx
+    jne _next
+    
+    ; run mode; test priority
+    cmp byte ptr jpriority[eax], dl
+    jge _next ; skip if current is equal or higher
+    mov dl, byte ptr jpriority[eax]
+    mov edi, eax ; if priority is smaller, set edi to that job
+
+_next:
+    call nextJob
+    mov eax, jobptr
+    cmp eax, ebx
+    jne _do
+
+    ; return jobptr to original location if no jobs found
+    cmp edi, 0
+    je _retPtr
+    mov jobptr, edi
+    jmp _ret
+
+_retPtr:
+    mov jobptr, ecx
+_ret:
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    ret
+getJobToRun endp
 
 
 
