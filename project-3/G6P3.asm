@@ -92,8 +92,9 @@ changeCommandPriorMsg byte "Enter a new priority (0-7): ",0
 stepCommandBadNum byte "Invalid number of steps. Defaulting to 1.",cr,lf,0
 jobDone1 byte "Job '",0
 jobDone2 byte "' has finished running and was removed.",cr,lf,0
-jobNext byte "' processed.",cr,lf,0
+jobNext byte "' processed, runtime ",0
 noRunningJobs byte "There are no currently running jobs to process.",cr,lf,0
+sysTime1 byte "System time: ",0
 
 ; record printing strings
 rpNameMsg byte "Record name: ",0
@@ -849,7 +850,15 @@ _processStep:
     cmp eax, 0
     je _jobNotFound
 
-    ; print "job '[name]" (same for both cases)
+    ; print info that is the same for either case
+    ; (system time, job name, runtime)
+    mov edx, offset sysTime1
+    call WriteString
+    push eax
+    movzx eax, system_time
+    call WriteInt
+    call Crlf
+    pop eax
     mov edx, offset jobDone1
     call WriteString
     push edi
@@ -872,11 +881,17 @@ _processStep:
     mov byte ptr jstatus[eax], 0
     mov edx, offset jobDone2
     call WriteString
+    call Crlf
+    call Crlf
     jmp _next
 
 _jobNotComplete:
     mov edx, offset jobNext
     call WriteString
+    movzx eax, word ptr jruntime[eax]
+    call WriteInt
+    call Crlf
+    call Crlf
 
 _next:
     inc ecx
