@@ -613,19 +613,16 @@ _findJob:
     call findJob
     jnc _notFound
     mov eax, jobptr
-    mov esi, jrun
-    movzx ecx, byte ptr jstatus[eax]
-    cmp ecx, esi
+    ;mov esi, jrun
+    ;movzx ecx, byte ptr jstatus[eax]
+    cmp byte ptr jstatus[eax], jrun
     jne _setRun
     mov edx, offset runCommandAlrRun
     call WriteString
     jmp _ret
 
 _setRun:
-    push ecx
-    mov ecx, esi
-    mov jstatus[eax], cl ; change status byte of record to run
-    pop ecx
+    mov byte ptr jstatus[eax], jrun ; change status byte of record to run
     mov edx, offset runCommandSuccess
     call WriteString
     jmp _ret
@@ -689,7 +686,6 @@ _findJob:
     call findJob
     jnc _notFound
     mov eax, jobptr
-    mov esi, jhold
     movzx ecx, byte ptr jstatus[eax]
     cmp ecx, esi
     jne _setHold
@@ -698,7 +694,7 @@ _findJob:
     jmp _ret
 
 _setHold:
-    mov jstatus[eax], esi ; change status byte of record to hold
+    mov byte ptr jstatus[eax], jhold ; change status byte of record to hold
     mov edx, offset holdCommandSuccess
     call WriteString 
     jmp _ret
