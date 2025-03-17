@@ -698,7 +698,7 @@ _findJob:
     jmp _ret
 
 _setHold:
-    mov jstatus[eax], esi ; change status byte of record to run
+    mov jstatus[eax], esi ; change status byte of record to hold
     mov edx, offset holdCommandSuccess
     call WriteString 
     jmp _ret
