@@ -107,7 +107,7 @@ rpLoad byte "Load time: ",0
 
 ; help message
 help1   byte "This program is a simple simulation of an operating system.",cr,lf
-        byte "Jobs can be run by the system, and have 5 elmeents:",cr,lf
+        byte "Jobs can be run by the system, and have 5 elements:",cr,lf
         byte tab,"name: a unique 8-character name for the job.",cr,lf
         byte tab,"prority: a number 0-7 (highest-lowest) for which jobs should be run first.",cr,lf
         byte tab,"status: either 'available' (0), 'holding' (1), or 'running' (2).",cr,lf
