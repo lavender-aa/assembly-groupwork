@@ -17,5 +17,9 @@
 !Project.vcxproj
 !Project.sln
 
-# search one directory deep
-!*/
+# project directories
+!empty-project/
+!project-1/
+!project-2/
+!project-3/
+!project-4/
