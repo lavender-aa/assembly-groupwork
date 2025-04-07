@@ -30,12 +30,12 @@ aXe label byte
 eRa byte psize dup(0)
 
 ; node b buffers
-bXa label byte
+bXa label byte 
 aRb byte pSize dup(0)
-bXc label byte
+bXc label byte 
 cRb byte pSize dup(0)
 bXf label byte
-fRb byte byte pSize dup(0)
+fRb byte pSize dup(0)
 
 ; node c buffers
 cXb label byte
@@ -71,12 +71,12 @@ dRf byte pSize dup(0)
 
 ; transmission queues
 qSize equ 10
-aQ byte qSize*pSize dup(0)
-bQ byte qSize*pSize dup(0)
-cQ byte qSize*pSize dup(0)
-dQ byte qSize*pSize dup(0)
-eQ byte qSize*pSize dup(0)
-fQ byte qSize*pSize dup(0)
+qA byte qSize*pSize dup(0)
+qB byte qSize*pSize dup(0)
+qC byte qSize*pSize dup(0)
+qD byte qSize*pSize dup(0)
+qE byte qSize*pSize dup(0)
+qF byte qSize*pSize dup(0)
 
 
 
