@@ -9,7 +9,17 @@ TITLE Network Simulator
 
 INCLUDE Irvine32.inc
 
-.data
+; constants
+tab equ 9
+messagesInQ equ 30
+packetSize equ 8
+qSize equ (messagesInQ+1) * packetSize
+nodeSize equ 14 ; no connections
+connectionSize equ 12
+name equ 0
+numConn equ 1
+
+
 
 ; packet fields
 dest equ 0
@@ -18,6 +28,16 @@ origin equ 2
 ttl equ 3
 received equ 4
 pSize equ 6
+
+
+
+
+.data
+; string/printing related
+currentNode byte "Node: ",0
+connectionNode byte tab,"connection: ",0
+nodePositionOffset equ sizeof currentNode - 2
+connectionPositionOffset equ sizeof connectionNode - 2
 
 
 
@@ -70,7 +90,6 @@ dRf byte pSize dup(0)
 
 
 ; transmission queues
-qSize equ 10
 qA byte qSize*pSize dup(0)
 qB byte qSize*pSize dup(0)
 qC byte qSize*pSize dup(0)
@@ -204,10 +223,52 @@ nodeF	byte 'F'
 		dword fXe
 		dword fRe
 
+endNodes dword offset endNodes
+
 .code
 main PROC
 
-	
+_mainLoop:
+	; edi points to beginning of current node
+	; esi points to connected note struct
+	; ecx, edx used for messages
+	; build source node message
+	; ebx used for connection counter
+	; eax temp for data, calculations
+
+	mov edi, offset nodeA ; start of network
+	mov al, nameOffset[edi]
+	mov nodePositionOffset[edx], al
+	mov edx, offset currentNode
+	mov ecx, sizeof currentNode
+	call WriteString
+	call Crlf
+
+	mov ebx, 0
+_connectionLoop: ; get, print connection message
+	mov eax, connectionSize
+	mul bl
+	mov esi, nodeSize[edi+eax]
+	mov edx, offset connectionNode
+	mov ecx, sizeof connectionNode
+	mov al, nameOffset[esi]
+	mov connectionPosition[edx], al
+	call WriteString
+	call Crlf
+	inc ebx
+	cmp bl, numConn[edi]
+	jl _connectionLoop
+
+	; step to the next node
+	mov eax, 0
+	mov al, numConn[edi]
+	mov cl, connectionSize
+	mul cl ; size of connections to jump in eax
+	add edi, nodeSize
+	add edi, eax ; edi at next node
+	cmp edi, endNodes
+	jl _mainLoop
+
 
 	exit
 main ENDP
