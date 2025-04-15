@@ -11,23 +11,22 @@ INCLUDE Irvine32.inc
 
 ; constants
 tab equ 9
-messagesInQ equ 30
-packetSize equ 8
-qSize equ (messagesInQ+1) * packetSize
-nodeSize equ 14 ; no connections
+messagesInQ equ 30 ; maximum number of elements in each queue
+pSize equ 6
+qSize equ (messagesInQ+1) * pSize
+nodeSize equ 14 ; base, without connections
 connectionSize equ 12
-name equ 0
+nameOffset equ 0
 numConn equ 1
 
 
 
 ; packet fields
-dest equ 0
-sender equ 1
-origin equ 2
-ttl equ 3
-received equ 4
-pSize equ 6
+dest equ 0		; byte
+sender equ 1	; byte
+origin equ 2	; byte
+ttl equ 3		; word
+received equ 5	; byte
 
 
 
@@ -36,8 +35,8 @@ pSize equ 6
 ; string/printing related
 currentNode byte "Node: ",0
 connectionNode byte tab,"connection: ",0
-nodePositionOffset equ sizeof currentNode - 2
-connectionPositionOffset equ sizeof connectionNode - 2
+nodePosition equ sizeof currentNode - 2 ; (?)
+connectionPosition equ sizeof connectionNode - 2 
 
 
 
@@ -237,37 +236,152 @@ _mainLoop:
 	; eax temp for data, calculations
 
 	mov edi, offset nodeA ; start of network
-	mov al, nameOffset[edi]
-	mov nodePositionOffset[edx], al
-	mov edx, offset currentNode
-	mov ecx, sizeof currentNode
-	call WriteString
-	call Crlf
 
+	; init time
+	call PrintCrlf
+	mov edx, offset timemess
+	mov ecx, sizeof timemess
+	movzx eax, time
+	stc
+	call PrintMessageNumber
+
+	; init pointer, packets
+	mov nodepointer, offest nodeA
+	mov generatedpackets, 0
+
+	; transmit loop
+xmtloop:
+	; print "processing node (name)" message
+	mov esi, nodepointer
+	call PrintCrlf
+	mov edx, offset processingout
+	mov eax, sizeof processingout
+	add edx, eax
+	sub edx, 2
+	mov al, nodeoffset[esi]
+	mov [edx], al
+	mov edx, offset processingout
+	mov ecx, sizeof processingout
+	stc
+	call PrintMessage
+	
+	; get message from transmit queue
+	mov messagepointer, offset temppacket
+	call Get
+	jc nextXMT
 	mov ebx, 0
-_connectionLoop: ; get, print connection message
-	mov eax, connectionSize
-	mul bl
-	mov esi, nodeSize[edi+eax]
-	mov edx, offset connectionNode
-	mov ecx, sizeof connectionNode
-	mov al, nameOffset[esi]
-	mov connectionPosition[edx], al
-	call WriteString
-	call Crlf
-	inc ebx
-	cmp bl, numConn[edi]
-	jl _connectionLoop
+	mov bl, numconnoffset[esi]
+	mov edi, offset temppacket
+	
+	; print "at time (time)"
+	mov edx, offset attime
+	mov ecx, sizeof attime
+	mov eax, word ptr rcvtimeoffset[edi]
+	clc
+	call PrintMessageNumber
+	
+	; print "received from (node)"
+	mov edx, offset messagereceived
+	mov eax, sizeof messagereceived
+	add edx, eax
+	sub edx, 2
+	mov al, sendoffset[edi]
+	mov [edx], al
+	mov nodefrom, al
+	mov al, nodename
+	mov sendoffset[edi], al
+	mov edx, offset messagereceived
+	mov ecx, offset messagereceived
+	stc
+	call PrintMessage
+	
+	; initialize packet counters
+	mov newpackets, -1
+	dec generatedpackets
+	dec totalpackets
+	dec activepackets
+	
+	; process each connection
+	add esi, basenodesize
+xmtnodeloop:
+	; print "message generated for (node)" message
+	mov edx, offset messagegenerated
+	mov eax, sizeof messagegenerated
+	add edx, eax
+	sub edx, 2
+	mov edi, connectionoffset[esi]
+	mov al, nodeoffset[edi]
+	mov [edx], al
+	mov edx, offest messagegenerated
+	mov ecx, sizeof messagegenerated
+	stc
+	call PrintMessage
+	
+	; echo or no echo
+	cmp echof, true
+	je sendit
+	cmp nodefrom, al
+	je dontsend
+sendit:
+	inc activepackets
+	inc newpackets
+	inc generatedpackets
+	inc totalpackets
+	; copy temppacket to transmit buffer for this connection
+	call SendPacket
+	mov edx, offset messagesent
+	mov ecx, sizeof messagesent
+	stc
+	call PrintMessage
+	jmp nextXMT
+dontsend:
+	mov edx, offset messagenotsent
+	mov ecx, sizeof messagenotsent
+	stc
+	call PrintMessage
 
-	; step to the next node
-	mov eax, 0
-	mov al, numConn[edi]
-	mov cl, connectionSize
-	mul cl ; size of connections to jump in eax
-	add edi, nodeSize
-	add edi, eax ; edi at next node
-	cmp edi, endNodes
-	jl _mainLoop
+nextXMT:
+	; move to the next connection in the current node
+	add esi, connectionsize
+	dec ebx ; count processed node connection
+	jg xmtnodeloop ; process next connection if there is one
+	
+	; go to the next node
+	movzx eax, byte ptr numconnoffset[esi]
+	movzx ebx, connectionsize
+	mul bl
+	add eax, basenodesize ; node + connections
+	add esi, eax
+	mov nodepointer, esi
+	cmp esi, endofnodes
+	jl xmtloop
+
+	; transmit loop complete
+	
+	; print number of active and generated messages
+	call PrintCrlf
+	mov edx, offset thereare2
+	mov ecx, offset thereare2
+	movzx eax, activepackets
+	clc
+	call PrintMessageNumber
+	mov edx, offset messagesactiveand
+	mov ecx, sizeof messagesactiveand
+	movzx eax, generatedpackets
+	clc
+	call PrintMessageNumber
+	mov edx, offset messageshavebeen
+	mov ecx, sizeof messageshavebeen
+	movzx eax, totalpackets
+	clc
+	call PrintMessageNumber
+	mov edx, offset totalmessageshavebeen
+	mov ecx, offset totalmessageshavebeen
+	stc
+	call PrintMessage
+	
+	; update time
+	inc time
 
 
 	exit
