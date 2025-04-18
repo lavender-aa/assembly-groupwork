@@ -428,6 +428,12 @@ main ENDP
 
 
 Get proc
+push eax
+push ebx
+push ecx
+push esi
+push edi
+
 	; get, normalize in pointer
 	mov eax, inPtrOffset[edx]
 	sub eax, qAddress[edx]
@@ -469,7 +475,13 @@ get2:
 	; error
 	stc
 _ret:
-	ret
+
+pop edi
+pop esi
+pop ecx
+pop ebx
+pop eax
+ret
 Get endp
 
 
@@ -477,6 +489,11 @@ Get endp
 
 Put proc
 ; process: test for full, then put data into in (currently empty), then move
+push eax
+push ebx
+push ecx
+push esi
+push edi
 
 	; calculate in after put
 	mov eax, inPtrOffset[edx]
@@ -522,7 +539,13 @@ put2:
 	; error: queue is full
 	stc
 _ret:
-	ret
+
+pop edi
+pop esi
+pop ecx
+pop ebx
+pop eax
+ret
 Put endp
 
 
