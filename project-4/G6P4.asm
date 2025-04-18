@@ -425,9 +425,107 @@ nextXMT:
 main ENDP
 
 
+
+
 Get proc
+	; get, normalize in pointer
+	mov eax, inPtrOffset[edx]
+	sub eax, qAddress[edx]
+	
+	; get, normalize out pointer
+	mov ebx, outPtrOffset[edx]
+	sub ebx, outPtrOffset[edx]
+	
+	; compare
+	cmp eax, ebx
+	je get2
+	
+	; get data from out pointer
+	cld
+	clc
+	mov esi, outPtrOffset[edx]
+	mov edi, messagePointer
+	mov ecx, pSize
+	rep movsb
+	
+	; update out pointer
+	mov eax, outPtrOffset[edx]
+	add eax, pSize
+	
+	; calculate end of queue
+	mov ebx, qAddress[edx]
+	add ebx, qSize
+	
+	; bounds check
+	cmp eax, ebx
+	jl get1
+	
+	; make circular
+	mov ax, qAddress[edx]
+get1:
+	mov outPtrOffset[edx], eax
+	jmp _ret
+get2:
+	; error
+	stc
+_ret:
 	ret
 Get endp
+
+
+
+
+Put proc
+; process: test for full, then put data into in (currently empty), then move
+
+	; calculate in after put
+	mov eax, inPtrOffset[edx]
+	add eax, pSize
+	
+	; normalize address to be queue offset
+	sub eax, qAddress[edx]
+	
+	; get out pointer, normalize
+	mov ebx, outPtrOffset[edx]
+	sub ebx, outPtrOffset[edx]
+	
+	; compare in/out offsets
+	cmp eax, ebx
+	je put2
+	
+	; move the bytes
+	cld
+	clc
+	mov esi, messagePointer
+	mov edi, inPtrOffset[edx]
+	mov ecx, pSize
+	rep movsb
+	
+	; update the pointer
+	mov eax, inPtrOffset[edx]
+	add eax, pSize
+	
+	; calculate end of queue
+	mov ebx, qAddress[edx]
+	add ebx, qSize
+	
+	; check if pointer went out of bounds
+	cmp eax, ebx
+	jl put1
+
+	; make circular
+	mov eax, qAddress[edx]
+put1:
+	mov inPtrOffset[edx], eax
+	jmp _ret
+put2:
+	; error: queue is full
+	stc
+_ret:
+	ret
+Put endp
+
+
 
 
 PrintCrlf proc
@@ -435,9 +533,13 @@ PrintCrlf proc
 PrintCrlf endp
 
 
+
+
 PrintMessageNumber proc
 	ret
 PrintMessageNumber endp
+
+
 
 
 PrintMessage proc
@@ -445,9 +547,13 @@ PrintMessage proc
 PrintMessage endp
 
 
+
+
 SendPacket proc
 	ret
 SendPacket endp
+
+
 
 
 END main
