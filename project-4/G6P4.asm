@@ -423,4 +423,31 @@ nextXMT:
 
 	exit
 main ENDP
+
+
+Get proc
+	ret
+Get endp
+
+
+PrintCrlf proc
+	ret
+PrintCrlf endp
+
+
+PrintMessageNumber proc
+	ret
+PrintMessageNumber endp
+
+
+PrintMessage proc
+	ret
+PrintMessage endp
+
+
+SendPacket proc
+	ret
+SendPacket endp
+
+
 END main
