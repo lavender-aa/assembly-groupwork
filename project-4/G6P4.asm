@@ -56,6 +56,7 @@ messagesactiveand byte " messages active, ",0
 messageshavebeen byte " messages have been generated, and a total of ",0
 totalmessageshavebeen byte " messages exited the network.",0
 amessagereceivedfrom byte "a message was received from  ",0
+messagereacheddestination byte "the message reached its destination from  ",0
 
 
 ; program vars
@@ -535,6 +536,26 @@ messageForNode:
 		; increment the received packets counter
 		; calculate the number of hops
 		; prepare a message received message
+
+	; increment the received packets counter
+	inc receivedpackets
+
+	; calculate the number of hops
+	mov al, maxhops
+	sub al, ttl[edi]
+	add al, totalhops
+
+	; prepare a message received message
+	mov edx, OFFSET messagereacheddestination
+	mov eax, SIZEOF messagereacheddestination
+	add edx, eax
+	sub edx, 2
+	mov al, origin[edi]
+	mov [edx], al
+	mov edx, OFFSET messagereacheddestination
+	mov ecx, SIZEOF messagereacheddestination
+	stc
+	call PrintMessage
 
 	jmp nextRCV
 
