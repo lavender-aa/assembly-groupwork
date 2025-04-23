@@ -57,6 +57,7 @@ messageshavebeen byte " messages have been generated, and a total of ",0
 totalmessageshavebeen byte " messages exited the network.",0
 amessagereceivedfrom byte "a message was received from  ",0
 messagereacheddestination byte "the message reached its destination from  ",0
+messagedied byte "the message died.",0
 
 
 ; program vars
@@ -560,9 +561,14 @@ messageForNode:
 	jmp nextRCV
 
 messageDied:
-	; code for message died
-		; prepare and print a message died message
-		; decrement the active packets counter
+	; prepare and print a message died message
+	mov edx, OFFSET messagedied
+	mov ecx, SIZEOF messagedied
+	stc
+	call PrintMessage
+
+	; decrement the active packets counter
+	dec activepackets
 
 nextRCV:
 	; move to the next connection in the current node
