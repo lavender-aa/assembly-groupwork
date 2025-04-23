@@ -474,7 +474,33 @@ rcvloop_itr:
 	je nextRCV
 
 	; message received
+		; build a message that will provide info
+		; check if the message is intended for this node
+		; if not for this node, jump to messageNotForNode
+		; if for this node, jump to messageForNode
+		; if the packet did not die, update the packet's receive time with the current time
+		; put into the transmit queue
 
+	jmp nextRCV
+
+messageForNode:
+	; code for message for node
+		; increment the received packets counter
+		; calculate the number of hops
+		; prepare a message received message
+
+	jmp nextRCV
+
+messageNotForNode:
+	; code for message not for node
+		; decrement the TTL counter in the packet
+
+	jmp nextRCV
+
+messageDied:
+	; code for message died
+		; prepare and print a message died message
+		; decrement the active packets counter
 
 nextRCV:
 	; move to the next connection in the current node
