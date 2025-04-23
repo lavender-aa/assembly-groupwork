@@ -14,10 +14,15 @@ tab equ 9
 messagesInQ equ 30 ; maximum number of elements in each queue
 pSize equ 6
 qSize equ (messagesInQ+1) * pSize
+
+; constants for node structure
 nodeSize equ 14 ; base, without connections
 connectionSize equ 12
 nameOffset equ 0
 numConn equ 1
+transmitQueue equ 2
+
+; constants for connection structure
 receiveBuffer equ 8
 
 
@@ -451,12 +456,21 @@ rcvloop:
 	stc
 	call PrintMessage
 
-	; code for no message
-		; get number of connections for node
-		; offset for the receive buffer for this node
-		; check if there is a message
-		; zero the first byte of the packet if there is no message
-	
+	; get message from transmit queue
+	mov messagepointer, offset temppacket
+	call Get
+	jc nextRCV
+	mov edi, offset temppacket
+
+	; check if there is no message
+	mov al, dest[edi]
+	cmp al, 0
+	jne rcvMessageExists
+
+	; set temppacket dest to 0
+	mov byte ptr dest[edi], 0
+
+rcvMessageExists:
 	; get number of connections for node
 	mov ebx, 0
 	mov bl, numconn[esi]
@@ -467,23 +481,19 @@ rcvloop:
 	; process each connection
 	add esi, nodeSize
 rcvloop_itr:
-	; get the receive buffer for this connection
-	mov edx, offset receiveBuffer[esi]
-
 	; check if there is a message
-	cmp byte ptr [edx], 0
+	cmp byte ptr dest[edi], 0
 	je nextRCV
 
 	; message received
 		; done - build a message that will provide info
 		; done - check if the message is intended for this node
 		; done - if for this node, jump to messageForNode
-		; if the packet did not die, update the packet's receive time with the current time
+		; done - if the packet did not die, update the packet's receive time with the current time
 		; put into the transmit queue
 
 	; get message sender name
-	mov al, sender[edx]
-	push edx ; save message pointer
+	mov al, sender[edi]
 	push eax ; save sender name
 	
 	; build a message
@@ -498,24 +508,25 @@ rcvloop_itr:
 	stc
 	call PrintMessage
 
-	; restore message pointer and get destination
-	pop edx
-	mov al, [edx]
+	; get destination
+	mov al, dest[edi]
 
 	; check if the message is intended for this node
 	cmp byte ptr nameOffset[esi], al
 	je messageForNode
 
 	; check if the packet died
-	mov al, ttl[edx]
+	mov al, ttl[edi]
 	cmp al, 0
 	jle messageDied
 
 	; update the packet's receive time with the current time
 	movzx eax, time
-	mov received[edx], ax
+	mov received[edi], ax
 
 	; put into the transmit queue
+	mov messagepointer, offset temppacket
+	call Put
 
 	jmp nextRCV
 
