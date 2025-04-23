@@ -18,6 +18,7 @@ nodeSize equ 14 ; base, without connections
 connectionSize equ 12
 nameOffset equ 0
 numConn equ 1
+receiveBuffer equ 8
 
 
 
