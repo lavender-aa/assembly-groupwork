@@ -53,6 +53,7 @@ messagesent byte tab,tab,tab,tab,"the message was sent.",0
 messagenotsent byte tab,tab,tab,tab,"the message was not sent.",0
 thereare2 byte tab,"there are ",0
 messagesactiveand byte " messages active, ",0
+messagesactive byte " messages active.",0
 messageshavebeen byte " messages have been generated, and a total of ",0
 totalmessageshavebeen byte " messages exited the network.",0
 amessagereceivedfrom byte "a message was received from  ",0
@@ -591,7 +592,32 @@ nextRCV:
 
 ; receive loop complete
 
+	; print number of active messages
+	call PrintCrlf
+	mov edx, offset thereare2
+	mov ecx, offset thereare2
+	movzx eax, activepackets
+	clc
+	call PrintMessageNumber
+	mov edx, offset messagesactive
+	mov ecx, sizeof messagesactive
+	movzx eax, generatedpackets
+	clc
+	call PrintMessage
 
+	; check if there are more than zero messages in the network
+	cmp activepackets, 0
+	jg xmtloop
+
+	; mainloop terminated
+
+	; print simulation information
+		; total time for simulation
+		; total messages generated in the simulation
+		; total packets that reached the destination
+		; average time for the packets to reach the destination
+		; average hops to reach the destination
+		; percentage of messages that reached the destination
 
 	exit
 main ENDP
