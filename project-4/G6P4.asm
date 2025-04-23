@@ -50,6 +50,7 @@ thereare2 byte tab,"there are ",0
 messagesactiveand byte " messages active, ",0
 messageshavebeen byte " messages have been generated, and a total of ",0
 totalmessageshavebeen byte " messages exited the network.",0
+amessagereceivedfrom byte "a message was received from  ",0
 
 
 ; program vars
@@ -474,12 +475,41 @@ rcvloop_itr:
 	je nextRCV
 
 	; message received
-		; build a message that will provide info
-		; check if the message is intended for this node
-		; if not for this node, jump to messageNotForNode
-		; if for this node, jump to messageForNode
+		; done - build a message that will provide info
+		; done - check if the message is intended for this node
+		; done - if for this node, jump to messageForNode
 		; if the packet did not die, update the packet's receive time with the current time
 		; put into the transmit queue
+
+	; get message sender name
+	mov al, sender[edx]
+	push eax ; save sender name
+	push edx ; save message pointer
+	
+	; build a message
+	mov edx, OFFSET amessagereceivedfrom
+	mov eax, SIZEOF amessagereceivedfrom
+	add edx, eax
+	sub edx, 2
+	pop eax ; restore sender name
+	mov [edx], al
+	mov edx, OFFSET amessagereceivedfrom
+	mov ecx, SIZEOF amessagereceivedfrom
+	stc
+	call PrintMessage
+
+	; restore message pointer and get destination
+	pop edx
+	mov al, [edx]
+
+	; check if the message is intended for this node
+	cmp byte ptr nameOffset[esi], al
+	je messageForNode
+
+	; message is not for this node
+		; decrement the TTL counter in the packet
+		; put in the transmit queue
+
 
 	jmp nextRCV
 
@@ -488,12 +518,6 @@ messageForNode:
 		; increment the received packets counter
 		; calculate the number of hops
 		; prepare a message received message
-
-	jmp nextRCV
-
-messageNotForNode:
-	; code for message not for node
-		; decrement the TTL counter in the packet
 
 	jmp nextRCV
 
