@@ -151,7 +151,7 @@ nodeA   byte 'A' ; name
 
 		; A <-> E
 		dword nodeE
-		dword axE
+		dword aXe
 		dword aRe
 
 ; node b
