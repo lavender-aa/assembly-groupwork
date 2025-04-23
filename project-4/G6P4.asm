@@ -422,6 +422,79 @@ nextXMT:
 	; update time
 	inc time
 
+	; start receive loop
+	call PrintCrlf
+	mov edx, OFFSET timemess
+	mov ecx, SIZEOF timemess
+	movzx eax, time
+	stc
+	call PrintMessageNumber
+
+	; init pointer to beginning of structure
+	mov eax, offset nodeA
+	mov nodepointer, eax
+
+	; receive loop
+rcvloop:
+	; print "processing node (name)" message
+	mov esi, nodepointer
+	call PrintCrlf
+	mov edx, OFFSET processingin
+	mov eax, SIZEOF processingin
+	add edx, eax
+	sub edx, 2
+	mov al, nameOffset[esi]
+	mov [edx], al
+	mov edx, OFFSET processingin
+	mov ecx, SIZEOF processingin
+	stc
+	call PrintMessage
+
+	; code for no message
+		; get number of connections for node
+		; offset for the receive buffer for this node
+		; check if there is a message
+		; zero the first byte of the packet if there is no message
+	
+	; get number of connections for node
+	mov ebx, 0
+	mov bl, numconn[esi]
+
+	; reset the new packets counter
+	mov newpackets, 0
+
+	; process each connection
+	add esi, nodeSize
+rcvloop_itr:
+	; get the receive buffer for this connection
+	mov edx, offset receiveBuffer[esi]
+
+	; check if there is a message
+	cmp byte ptr [edx], 0
+	je nextRCV
+
+	; message received
+
+
+nextRCV:
+	; move to the next connection in the current node
+	add esi, connectionsize
+	dec ebx
+	cmp ebx, 0
+	jg rcvloop_itr ; process next connection if there is one
+
+	; go to the next node
+	movzx eax, byte ptr numconn[esi]
+	mov ebx, connectionsize
+	mul bl
+	add eax, nodeSize ; node + connections
+	add esi, eax
+	cmp esi, endNodes
+	jl rcvloop
+
+; receive loop complete
+
+
 
 	exit
 main ENDP
