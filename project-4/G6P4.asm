@@ -488,13 +488,6 @@ rcvloop_itr:
 	cmp byte ptr dest[edi], 0
 	je nextRCV
 
-	; message received
-		; done - build a message that will provide info
-		; done - check if the message is intended for this node
-		; done - if for this node, jump to messageForNode
-		; done - if the packet did not die, update the packet's receive time with the current time
-		; put into the transmit queue
-
 	; get message sender name
 	mov al, sender[edi]
 	push eax ; save sender name
@@ -534,11 +527,6 @@ rcvloop_itr:
 	jmp nextRCV
 
 messageForNode:
-	; code for message for node
-		; increment the received packets counter
-		; calculate the number of hops
-		; prepare a message received message
-
 	; increment the received packets counter
 	inc receivedpackets
 
