@@ -571,6 +571,9 @@ messageDied:
 	dec activepackets
 
 nextRCV:
+	; clear receive buffer
+	mov recieveBuffer[esi], 0
+
 	; move to the next connection in the current node
 	add esi, connectionsize
 	dec ebx
