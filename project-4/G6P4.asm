@@ -26,8 +26,8 @@ receiveBuffer equ 8
 dest equ 0		; byte
 sender equ 1	; byte
 origin equ 2	; byte
-ttl equ 3		; word
-received equ 5	; byte
+ttl equ 3		; byte
+received equ 4	; word
 
 
 
@@ -483,8 +483,8 @@ rcvloop_itr:
 
 	; get message sender name
 	mov al, sender[edx]
-	push eax ; save sender name
 	push edx ; save message pointer
+	push eax ; save sender name
 	
 	; build a message
 	mov edx, OFFSET amessagereceivedfrom
@@ -506,10 +506,16 @@ rcvloop_itr:
 	cmp byte ptr nameOffset[esi], al
 	je messageForNode
 
-	; message is not for this node
-		; decrement the TTL counter in the packet
-		; put in the transmit queue
+	; check if the packet died
+	mov al, ttl[edx]
+	cmp al, 0
+	jle messageDied
 
+	; update the packet's receive time with the current time
+	movzx eax, time
+	mov received[edx], ax
+
+	; put into the transmit queue
 
 	jmp nextRCV
 
