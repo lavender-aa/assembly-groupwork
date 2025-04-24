@@ -738,6 +738,8 @@ Put endp
 
 
 PrintCrlf proc
+	call Crlf
+
 	ret
 PrintCrlf endp
 
@@ -745,6 +747,7 @@ PrintCrlf endp
 
 
 PrintMessageNumber proc
+	
 	ret
 PrintMessageNumber endp
 
@@ -752,13 +755,47 @@ PrintMessageNumber endp
 
 
 PrintMessage proc
+	call WriteString
+
+	push edx
+	mov edx, offset filename
+	call CreateOutputFile
+	mov outfilehandle, eax
+	cmp eax, INVALID_HANDLE_VALUE
+	je outfileerror
+
+	mov edx, offset promptoutputfile
+	mov ecs, sizeof promptoutputfile
+	call WriteString
+
+	pop edx
 	ret
 PrintMessage endp
 
 
 
 
-SendPacket proc
+SendPacket proc 
+	;copies temppacket to transmit buffer for a connection
+	push edx
+	push eax
+	push esi
+	push edi
+	cld
+	mov edx, nodepointer
+	mov esi, temppacket
+	mov edi, inPtrOffset[edx]
+	mov ecx, pSize
+	rep movsb
+
+	; updates pointer
+	mov eax, inPtrOffset[edx]
+	add eax, pSize
+	
+	pop edx
+	pop ebx
+	pop esi
+	pop edi
 	ret
 SendPacket endp
 
