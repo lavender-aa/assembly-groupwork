@@ -21,6 +21,9 @@ connectionSize equ 12
 nameOffset equ 0
 numConn equ 1
 transmitQueue equ 2
+inPtrOffset equ 6
+outPtrOffset equ 10
+qAddress equ 2
 
 ; constants for connection structure
 receiveBuffer equ 8
@@ -73,7 +76,7 @@ generatedpackets word 0
 totalpackets word 0
 activepackets word 1
 receivedpackets word 0
-totalhops word 0
+totalhops byte 0
 totaltime word 0
 avghops dword 0
 maxhops byte 6
@@ -286,12 +289,12 @@ _mainLoop:
 	mov edi, offset nodeA ; start of network
 
 	; init time
-	call PrintCrlf
 	mov edx, offset timemess
 	mov ecx, sizeof timemess
 	movzx eax, time
 	stc
 	call PrintMessageNumber
+	call Crlf
 
 	; init pointer
 	mov eax, offset nodeA
@@ -301,7 +304,6 @@ _mainLoop:
 xmtloop:
 	; print "processing node (name)" message
 	mov esi, nodepointer
-	call PrintCrlf
 	mov edx, offset processingout
 	mov eax, sizeof processingout
 	add edx, eax
@@ -312,6 +314,7 @@ xmtloop:
 	mov ecx, sizeof processingout
 	stc
 	call PrintMessage
+	call Crlf
 	
 	; get message from transmit queue
 	mov messagepointer, offset temppacket
@@ -358,7 +361,7 @@ xmtnodeloop:
 	add edx, eax
 	sub edx, 2
 	mov edi, numconn[esi]
-	mov al, nameOffset[edi]
+	mov al, nameOffset[edi] ; access violation
 	mov [edx], al
 	mov edx, offset messagegenerated
 	mov ecx, sizeof messagegenerated
@@ -514,7 +517,7 @@ rcvloop_itr:
 	; check if the packet died
 	mov al, ttl[edi]
 	cmp al, 0
-	jle messageDied
+	jle messageJustDied
 
 	; update the packet's receive time with the current time
 	movzx eax, time
@@ -549,7 +552,7 @@ messageForNode:
 
 	jmp nextRCV
 
-messageDied:
+messageJustDied:
 	; prepare and print a message died message
 	mov edx, OFFSET messagedied
 	mov ecx, SIZEOF messagedied
@@ -561,7 +564,7 @@ messageDied:
 
 nextRCV:
 	; clear receive buffer
-	mov recieveBuffer[esi], 0
+	mov dword ptr receiveBuffer[esi], 0
 
 	; move to the next connection in the current node
 	add esi, connectionsize
@@ -620,13 +623,16 @@ push ecx
 push esi
 push edi
 
+	; store current node pointer
+	mov ebp, edi
+
 	; get, normalize in pointer
-	mov eax, inPtrOffset[edx]
-	sub eax, qAddress[edx]
+	mov eax, inPtrOffset[ebp]
+	sub eax, qAddress[ebp]
 	
 	; get, normalize out pointer
-	mov ebx, outPtrOffset[edx]
-	sub ebx, outPtrOffset[edx]
+	mov ebx, outPtrOffset[ebp]
+	sub ebx, outPtrOffset[ebp]
 	
 	; compare
 	cmp eax, ebx
@@ -635,17 +641,17 @@ push edi
 	; get data from out pointer
 	cld
 	clc
-	mov esi, outPtrOffset[edx]
+	mov esi, outPtrOffset[ebp]
 	mov edi, messagePointer
 	mov ecx, pSize
 	rep movsb
 	
 	; update out pointer
-	mov eax, outPtrOffset[edx]
+	mov eax, outPtrOffset[ebp]
 	add eax, pSize
 	
 	; calculate end of queue
-	mov ebx, qAddress[edx]
+	mov ebx, qAddress[ebp]
 	add ebx, qSize
 	
 	; bounds check
@@ -653,9 +659,9 @@ push edi
 	jl get1
 	
 	; make circular
-	mov ax, qAddress[edx]
+	mov ax, qAddress[ebp]
 get1:
-	mov outPtrOffset[edx], eax
+	mov outPtrOffset[ebp], eax
 	jmp _ret
 get2:
 	; error
@@ -681,16 +687,19 @@ push ecx
 push esi
 push edi
 
+	; store current node
+	mov ebp, edi
+
 	; calculate in after put
-	mov eax, inPtrOffset[edx]
+	mov eax, inPtrOffset[ebp]
 	add eax, pSize
 	
 	; normalize address to be queue offset
-	sub eax, qAddress[edx]
+	sub eax, qAddress[ebp]
 	
 	; get out pointer, normalize
-	mov ebx, outPtrOffset[edx]
-	sub ebx, outPtrOffset[edx]
+	mov ebx, outPtrOffset[ebp]
+	sub ebx, outPtrOffset[ebp]
 	
 	; compare in/out offsets
 	cmp eax, ebx
@@ -700,16 +709,16 @@ push edi
 	cld
 	clc
 	mov esi, messagePointer
-	mov edi, inPtrOffset[edx]
+	mov edi, inPtrOffset[ebp]
 	mov ecx, pSize
 	rep movsb
 	
 	; update the pointer
-	mov eax, inPtrOffset[edx]
+	mov eax, inPtrOffset[ebp]
 	add eax, pSize
 	
 	; calculate end of queue
-	mov ebx, qAddress[edx]
+	mov ebx, qAddress[ebp]
 	add ebx, qSize
 	
 	; check if pointer went out of bounds
@@ -717,9 +726,9 @@ push edi
 	jl put1
 
 	; make circular
-	mov eax, qAddress[edx]
+	mov eax, qAddress[ebp]
 put1:
-	mov inPtrOffset[edx], eax
+	mov inPtrOffset[ebp], eax
 	jmp _ret
 put2:
 	; error: queue is full
@@ -738,8 +747,8 @@ Put endp
 
 
 PrintCrlf proc
+	call WriteString
 	call Crlf
-
 	ret
 PrintCrlf endp
 
@@ -747,7 +756,8 @@ PrintCrlf endp
 
 
 PrintMessageNumber proc
-	
+	call WriteString
+	call WriteInt
 	ret
 PrintMessageNumber endp
 
@@ -757,18 +767,18 @@ PrintMessageNumber endp
 PrintMessage proc
 	call WriteString
 
-	push edx
-	mov edx, offset filename
-	call CreateOutputFile
-	mov outfilehandle, eax
-	cmp eax, INVALID_HANDLE_VALUE
-	je outfileerror
-
-	mov edx, offset promptoutputfile
-	mov ecs, sizeof promptoutputfile
-	call WriteString
-
-	pop edx
+;	push edx
+;	mov edx, offset filename
+;	call CreateOutputFile
+;	mov outfilehandle, eax
+;	cmp eax, INVALID_HANDLE_VALUE
+;	je outfileerror
+;
+;	mov edx, offset promptoutputfile
+;	mov ecx, sizeof promptoutputfile
+;	call WriteString
+;
+;	pop edx
 	ret
 PrintMessage endp
 
@@ -783,7 +793,7 @@ SendPacket proc
 	push edi
 	cld
 	mov edx, nodepointer
-	mov esi, temppacket
+	mov esi, offset temppacket
 	mov edi, inPtrOffset[edx]
 	mov ecx, pSize
 	rep movsb
